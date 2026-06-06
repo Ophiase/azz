@@ -1,0 +1,31 @@
+[project]
+dependencies = [
+  "beautifulsoup4>=4.14.3",
+  "html2text>=2025.4.15",
+  "markdownify>=1.2.2",
+  "pydantic>=2.13.4",
+  "rich>=15.0.0",
+  "textual>=8.2.7",
+  "typer>=0.25.1",
+]
+description = "Simple helper for Azure devops task management"
+name = "azz"
+readme = "README.md"
+requires-python = ">=3.14"
+version = "0.1.0"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/azz"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.14",
+    "ty>=0.0.39",
+]
+
+[project.scripts]
+azz = "azz.__main__:main"
