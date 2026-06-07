@@ -1,0 +1,10 @@
+line-length = 88
+preview = true
+
+[lint]
+extend-select = ["RUF029"]
+fixable = ["ALL"]
+select = ["E", "F", "UP", "B", "I", "SIM", "S", "RUF", "PTH", "C4", "ARG", "G"]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]

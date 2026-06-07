@@ -1,0 +1,8 @@
+export AZURE_DEVOPS_ORG="https://your.company.com/"
+
+export AZURE_DEVOPS_PROJECT="the.project.name"
+export AZURE_DEVOPS_MANAGEMENT_PROJECT="The Management project"
+
+export AZURE_DEVOPS_REPO="You Repository"
+
+export AZZ_PREPEND_PROJECT_NAME=True
