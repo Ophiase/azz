@@ -44,14 +44,10 @@ class Iteration:
         if self.start_date is None or self.finish_date is None:
             return False
 
-        now = datetime.now(tz=self.start_date.tzinfo) if self.start_date else None
-        if now is None:
-            return False
+        now = datetime.now(tz=self.start_date.tzinfo)
 
-        return (
-            self.start_date is not None
-            and self.finish_date is not None
-            and self.start_date <= now <= self.finish_date
+        return self.start_date <= now <= self.finish_date or (
+            self.start_date.date() <= now.date() <= self.finish_date.date()
         )
 
     def render(self) -> str:
