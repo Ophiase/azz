@@ -43,6 +43,7 @@ class AzzApp:
         command("show")(self.show_work_item)
         command("timebox")(self.show_timebox)
         command("set_timebox")(self.set_timebox)
+        command("list_timebox")(self.list_timeboxes)
         # stateful
         for n in ["create", "c"]:
             command(n)(self.create_work_item)
@@ -173,6 +174,11 @@ class AzzApp:
     def show_timebox(self):
         timebox = self._engine.get_current_timebox()
         print(timebox.render_all())
+
+    def list_timeboxes(self):
+        timeboxes = self._engine.list_timeboxes()
+        for timebox in timeboxes:
+            print(timebox.render_all())
 
     def set_timebox(
         self,
