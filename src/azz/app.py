@@ -63,6 +63,9 @@ class AzzApp:
         show_others: bool = typer.Option(False, "--others", "-A"),
         resolved_only: bool = typer.Option(False, "--resolved", "-r"),
         current_timebox_only: bool = typer.Option(False, "--current-timebox", "-c"),
+        sorted_by_update: bool = typer.Option(False, "--sorted-by-update", "-s"),
+        limit: int | None = typer.Option(None, "--limit", "-l"),
+        show_date: bool = typer.Option(False, "--date", "-d"),
     ):
         states = None
         if include_closed:
@@ -85,8 +88,17 @@ class AzzApp:
             print("[yellow]No tasks found[/yellow]")
             return
 
+        if sorted_by_update:
+            tasks = tuple(sorted(
+                tasks,
+                key=lambda t: t.changed_date.timestamp() if t.changed_date else 0.0,
+            ))
+
+        if limit is not None:
+            tasks = tasks[-limit:]
+
         for task in tasks:
-            print(task.render_list())
+            print(task.render_list(show_date=show_date))
 
     def show_work_item(self, work_item_id: int):
         work_item = self._engine.get_workitem(work_item_id)

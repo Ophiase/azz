@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Self, override
 
 from pydantic.dataclasses import dataclass
@@ -21,6 +22,7 @@ class WorkItem:
     assigned_to: Username | None = None
     iteration_path: IterationPath | None = None
     parent_id: int | None = None
+    changed_date: datetime | None = None
 
     @property
     def name_project(self) -> str | None:
@@ -39,13 +41,16 @@ class WorkItem:
     def state_style(self) -> str:
         return STATE_COLORS.get(self.state, "white")
 
-    def render_list(self) -> str:
+    def render_list(self, show_date: bool = False) -> str:
         style = self.state_style()
         iteration_path_number = (
             self.iteration_path.optional_number if self.iteration_path else None
         )
+        date_prefix = ""
+        if show_date and self.changed_date:
+            date_prefix = f"{self.changed_date.day:02d}/{self.changed_date.month:02d} "
         return (
-            f"[{style}]{self.id} {iteration_path_number!s:<4} "
+            f"[{style}]{date_prefix}{self.id} {iteration_path_number!s:<4} "
             f"{self.item_type:<10} {self.state:<10} "
             f"{self.name}[/{style}]"
         )
@@ -84,6 +89,11 @@ class WorkItem:
             assigned.get("displayName") if isinstance(assigned, dict) else None
         )
 
+        changed_date_str = fields.get("System.ChangedDate")
+        changed_date = (
+            datetime.fromisoformat(changed_date_str) if changed_date_str else None
+        )
+
         return {
             "id": data.get("id", ""),
             "name": fields.get("System.Title", ""),
@@ -95,6 +105,7 @@ class WorkItem:
                 fields.get("System.IterationPath"), normalized=True
             ),
             "parent_id": fields.get("System.Parent"),
+            "changed_date": changed_date,
         }
 
     @classmethod

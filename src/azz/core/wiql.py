@@ -35,6 +35,7 @@ def build_wiql_query(
         "[System.WorkItemType]",
         "[System.IterationPath]",
         "[System.Parent]",
+        "[System.ChangedDate]",
     ))
     return basic_wiql_query(fields, "workitems", where)
 
