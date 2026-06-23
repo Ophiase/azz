@@ -4,10 +4,10 @@ import asyncio
 from dataclasses import replace
 from typing import ClassVar, Final
 
-from textual import work
+from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header
+from textual.widgets import DataTable, Footer, Header
 
 from azz.core.branch import branch_name
 from azz.core.clipboard import copy_to_clipboard
@@ -46,7 +46,6 @@ class AzzTUI(App[None]):
         Binding("j", "cursor_down", "Down", show=False),
         Binding("up", "cursor_up", "Up", show=False),
         Binding("down", "cursor_down", "Down", show=False),
-        Binding("enter", "show_detail", "Show", show=False),
         Binding("e", "edit_desc", "Edit"),
         Binding("r", "rename", "Rename"),
         Binding("s", "pick_state", "State"),
@@ -55,6 +54,7 @@ class AzzTUI(App[None]):
         Binding("a", "toggle_closed", "[a]Closed"),
         Binding("A", "toggle_others", "[A]Others"),
         Binding("o", "toggle_others", "Others", show=False),
+        Binding("c", "toggle_current_timebox", "[c]Current"),
         Binding("p", "toggle_project", "[p]Project"),
         Binding("b", "show_branch", "Branch"),
         Binding("R", "reload", "Reload"),
@@ -69,6 +69,7 @@ class AzzTUI(App[None]):
         self._timeboxes: tuple[Iteration, ...] = ()
         self._include_closed: bool = False
         self._show_others: bool = False
+        self._current_timebox_only: bool = False
         self._show_project: bool = False
 
     def compose(self) -> ComposeResult:
@@ -93,11 +94,29 @@ class AzzTUI(App[None]):
         )
         self._apply_filters()
 
+    def _current_timebox_number(self) -> int | None:
+        return next(
+            (
+                tb.path.optional_number
+                for tb in self._timeboxes
+                if tb.is_current
+            ),
+            None,
+        )
+
     def _apply_filters(self) -> None:
         visible_states = _ALL_STATES if self._include_closed else _OPEN_STATES
         items = tuple(
             item for item in self._all_items if item.state in visible_states
         )
+        if self._current_timebox_only:
+            current_number = self._current_timebox_number()
+            if current_number is not None:
+                items = tuple(
+                    item for item in items
+                    if item.iteration_path
+                    and item.iteration_path.optional_number == current_number
+                )
         self._items = tuple(sorted(
             items,
             key=lambda item: (
@@ -116,6 +135,7 @@ class AzzTUI(App[None]):
         self.query_one(FilterBar).update_filters(
             include_closed=self._include_closed,
             show_others=self._show_others,
+            current_timebox_only=self._current_timebox_only,
             show_project=self._show_project,
             item_count=len(self._items),
         )
@@ -134,10 +154,18 @@ class AzzTUI(App[None]):
     def action_cursor_down(self) -> None:
         self.query_one(WorkItemTable).action_cursor_down()
 
+    @on(DataTable.RowSelected)
+    def on_row_selected(self) -> None:
+        self.action_show_detail()
+
     # --- Filter toggles (client-side — no network call) ---
 
     def action_toggle_closed(self) -> None:
         self._include_closed = not self._include_closed
+        self._apply_filters()
+
+    def action_toggle_current_timebox(self) -> None:
+        self._current_timebox_only = not self._current_timebox_only
         self._apply_filters()
 
     def action_toggle_project(self) -> None:

@@ -11,13 +11,16 @@ class FilterBar(Label):
         *,
         include_closed: bool,
         show_others: bool,
+        current_timebox_only: bool,
         show_project: bool,
         item_count: int,
     ) -> None:
         closed = "[green]ON[/green]" if include_closed else "off"
         others = "[green]ON[/green]" if show_others else "off"
+        current = "[green]ON[/green]" if current_timebox_only else "off"
         project = "[green]ON[/green]" if show_project else "off"
         self.update(
             f"[a] closed: {closed}  ·  [A] others: {others}"
-            f"  ·  [p] project: {project}  ·  {item_count} items"
+            f"  ·  [c] current: {current}  ·  [p] project: {project}"
+            f"  ·  {item_count} items"
         )

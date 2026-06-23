@@ -14,10 +14,19 @@ def copy_to_clipboard(text: str) -> bool:
 
 
 def _run_copy_command(command: Sequence[str], text: str) -> bool:
+    # Clipboard daemons (wl-copy, xclip) never exit — they stay alive to serve
+    # paste requests. Use Popen without waiting so we return immediately.
     try:
-        subprocess.run(  # noqa: S603
-            command, input=text.encode(), check=True, capture_output=True
+        proc = subprocess.Popen(  # noqa: S603
+            command,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
         )
+        if proc.stdin is not None:
+            proc.stdin.write(text.encode())
+            proc.stdin.close()
         return True
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except (FileNotFoundError, OSError):
         return False
