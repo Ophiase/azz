@@ -53,20 +53,27 @@ async def run_az_void(*args: str) -> None:
         logger.debug(stderr)
 
 
-def _run_in_thread(coro: Any) -> Any:
+def _run_in_thread(factory: Callable[[], Any]) -> Any:
     with ThreadPoolExecutor(max_workers=1) as pool:
-        return pool.submit(asyncio.run, coro).result()
+        return pool.submit(lambda: asyncio.run(factory())).result()
+
+
+def _loop_is_running() -> bool:
+    try:
+        asyncio.get_running_loop()
+        return True
+    except RuntimeError:
+        return False
 
 
 def run_az_command_sync(*args: str) -> list | dict:
-    try:
-        return asyncio.run(run_az_command(*args))
-    except RuntimeError:
-        return _run_in_thread(run_az_command(*args))
+    if _loop_is_running():
+        return _run_in_thread(lambda: run_az_command(*args))
+    return asyncio.run(run_az_command(*args))
 
 
 def run_az_void_sync(*args: str) -> None:
-    try:
+    if _loop_is_running():
+        _run_in_thread(lambda: run_az_void(*args))
+    else:
         asyncio.run(run_az_void(*args))
-    except RuntimeError:
-        _run_in_thread(run_az_void(*args))

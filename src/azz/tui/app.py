@@ -15,7 +15,9 @@ from azz.core.engine import Engine
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItemState
 from azz.core.work_item.work_item import WorkItem
+from azz.tui.detail_screen import DetailScreen
 from azz.tui.filter_bar import FilterBar
+from azz.tui.rename_screen import RenameScreen
 from azz.tui.state_picker import StatePickerScreen
 from azz.tui.timebox_nav import adjacent_timebox
 from azz.tui.work_table import WorkItemTable
@@ -44,6 +46,7 @@ class AzzTUI(App[None]):
         Binding("j", "cursor_down", "Down", show=False),
         Binding("up", "cursor_up", "Up", show=False),
         Binding("down", "cursor_down", "Down", show=False),
+        Binding("enter", "show_detail", "Show", show=False),
         Binding("e", "edit_desc", "Edit"),
         Binding("r", "rename", "Rename"),
         Binding("s", "pick_state", "State"),
@@ -160,12 +163,33 @@ class AzzTUI(App[None]):
             self._engine.edit_work_item(item.id, edit_title=False)
         self._fetch_items()
 
+    @work
+    async def action_show_detail(self) -> None:
+        item = self._cursor_item()
+        if item is None:
+            return
+        full_item = await asyncio.to_thread(self._engine.get_workitem, item.id)
+        await self.push_screen_wait(DetailScreen(full_item))
+
+    @work
     async def action_rename(self) -> None:
         item = self._cursor_item()
         if item is None:
             return
-        with self.suspend():
-            self._engine.edit_work_item(item.id, edit_title=True)
+        new_title: str | None = await self.push_screen_wait(
+            RenameScreen(item.stripped_name)
+        )
+        if new_title is None:
+            return
+        full_title = (
+            f"[{item.name_project}] - {new_title}"
+            if item.name_project
+            else new_title
+        )
+        await asyncio.to_thread(
+            self._engine.update_work_item_title, item.id, full_title
+        )
+        self.notify(f"Renamed → {new_title}")
         self._fetch_items()
 
     @work
@@ -215,11 +239,11 @@ class AzzTUI(App[None]):
         self.notify(f"TB → {target.path.optional_number}")
         self._fetch_items()
 
-    def action_show_branch(self) -> None:
+    async def action_show_branch(self) -> None:
         item = self._cursor_item()
         if item is None:
             return
         name = branch_name(item)
-        copied = copy_to_clipboard(name)
+        copied = await asyncio.to_thread(copy_to_clipboard, name)
         suffix = " (copied)" if copied else ""
         self.notify(name + suffix, title="Branch name", timeout=10)
