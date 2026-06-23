@@ -2,84 +2,46 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
+from typing import ClassVar, Final
 
-from rich.text import Text
-from textual import on, work
+from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.screen import ModalScreen
-from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView
-from textual.containers import Vertical
+from textual.widgets import Footer, Header
 
 from azz.core.branch import branch_name
+from azz.core.clipboard import copy_to_clipboard
 from azz.core.engine import Engine
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItemState
 from azz.core.work_item.work_item import WorkItem
+from azz.tui.filter_bar import FilterBar
+from azz.tui.state_picker import StatePickerScreen
+from azz.tui.timebox_nav import adjacent_timebox
+from azz.tui.work_table import WorkItemTable
 
-_STATE_COLORS: dict[WorkItemState, str] = {
-    WorkItemState.ACTIVE: "green",
-    WorkItemState.NEW: "yellow",
-    WorkItemState.RESOLVED: "cyan",
-    WorkItemState.CLOSED: "grey50",
-    WorkItemState.DESIGN: "blue",
-}
+_ALL_STATES: Final = frozenset({
+    WorkItemState.ACTIVE,
+    WorkItemState.NEW,
+    WorkItemState.DESIGN,
+    WorkItemState.RESOLVED,
+    WorkItemState.CLOSED,
+})
 
-
-class StatePickerScreen(ModalScreen[WorkItemState | None]):
-    CSS = """
-    StatePickerScreen {
-        align: center middle;
-    }
-    #dialog {
-        width: 30;
-        height: auto;
-        border: solid $primary;
-        background: $surface;
-        padding: 1;
-    }
-    """
-
-    BINDINGS = [("escape", "dismiss_none", "Cancel")]
-
-    _STATES = (
-        WorkItemState.NEW,
-        WorkItemState.ACTIVE,
-        WorkItemState.DESIGN,
-        WorkItemState.RESOLVED,
-        WorkItemState.CLOSED,
-    )
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="dialog"):
-            yield Label("[bold]Select State[/bold]")
-            yield ListView(
-                *[ListItem(Label(s.value), id=f"s-{s.value}") for s in self._STATES]
-            )
-
-    @on(ListView.Selected)
-    def on_selected(self, event: ListView.Selected) -> None:
-        raw_id = event.item.id or ""
-        self.dismiss(WorkItemState.from_str(raw_id.removeprefix("s-")))
-
-    def action_dismiss_none(self) -> None:
-        self.dismiss(None)
+_OPEN_STATES: Final = frozenset({
+    WorkItemState.ACTIVE,
+    WorkItemState.NEW,
+    WorkItemState.DESIGN,
+})
 
 
 class AzzTUI(App[None]):
     TITLE = "azz interactive"
-    CSS = """
-    DataTable { height: 1fr; }
-    #filter-bar {
-        height: 1;
-        background: $surface;
-        padding: 0 1;
-    }
-    """
+    CSS = "Screen { background: transparent; }"
 
-    BINDINGS = [
-        Binding("i", "cursor_up", "Up", show=False),
-        Binding("k", "cursor_down", "Down", show=False),
+    BINDINGS: ClassVar = [
+        Binding("k", "cursor_up", "Up", show=False),
+        Binding("j", "cursor_down", "Down", show=False),
         Binding("up", "cursor_up", "Up", show=False),
         Binding("down", "cursor_down", "Down", show=False),
         Binding("e", "edit_desc", "Edit"),
@@ -90,6 +52,7 @@ class AzzTUI(App[None]):
         Binding("a", "toggle_closed", "[a]Closed"),
         Binding("A", "toggle_others", "[A]Others"),
         Binding("o", "toggle_others", "Others", show=False),
+        Binding("p", "toggle_project", "[p]Project"),
         Binding("b", "show_branch", "Branch"),
         Binding("R", "reload", "Reload"),
         Binding("q", "quit", "Quit"),
@@ -98,173 +61,164 @@ class AzzTUI(App[None]):
     def __init__(self, engine: Engine) -> None:
         super().__init__()
         self._engine = engine
-        self._items: list[WorkItem] = []
-        self._timeboxes: list[Iteration] = []
-        self._include_closed = False
-        self._show_others = False
+        self._all_items: tuple[WorkItem, ...] = ()
+        self._items: tuple[WorkItem, ...] = ()
+        self._timeboxes: tuple[Iteration, ...] = ()
+        self._include_closed: bool = False
+        self._show_others: bool = False
+        self._show_project: bool = False
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield DataTable(cursor_type="row", id="table")
-        yield Label("Loading...", id="filter-bar")
+        yield WorkItemTable(id="table")
+        yield FilterBar("Loading...", id="filter-bar")
         yield Footer()
 
     def on_mount(self) -> None:
-        table = self.query_one("#table", DataTable)
-        table.add_columns("ID", "TB", "Type", "State", "Name")
-        self._load_all()
+        self._fetch_items()
 
     @work(exclusive=True)
-    async def _load_all(self) -> None:
-        timeboxes, items = await asyncio.gather(
+    async def _fetch_items(self) -> None:
+        self._timeboxes, self._all_items = await asyncio.gather(
             asyncio.to_thread(self._engine.list_timeboxes),
             asyncio.to_thread(
                 self._engine.list_work_items,
-                states=self._get_states(),
+                states=_ALL_STATES,
                 show_others=self._show_others,
             ),
         )
-        self._timeboxes = list(timeboxes)
-        self._items = list(items)
-        self._refresh_table()
+        self._apply_filters()
 
-    def _get_states(self) -> frozenset[WorkItemState] | None:
-        if self._include_closed:
-            return frozenset({
-                WorkItemState.ACTIVE,
-                WorkItemState.NEW,
-                WorkItemState.RESOLVED,
-                WorkItemState.CLOSED,
-            })
-        return None
+    def _apply_filters(self) -> None:
+        visible_states = _ALL_STATES if self._include_closed else _OPEN_STATES
+        items = tuple(
+            item for item in self._all_items if item.state in visible_states
+        )
+        self._items = tuple(sorted(
+            items,
+            key=lambda item: (
+                item.changed_date.timestamp() if item.changed_date else 0.0
+            ),
+            reverse=True,
+        ))
+        self._refresh_view()
 
-    def _refresh_table(self, preserve_cursor: bool = False) -> None:
-        table = self.query_one("#table", DataTable)
-        saved_row = table.cursor_row
-        table.clear()
-        for item in self._items:
-            tb_num = item.iteration_path.optional_number if item.iteration_path else None
-            tb = str(tb_num) if tb_num is not None else "─"
-            color = _STATE_COLORS.get(item.state, "white")
-            table.add_row(
-                str(item.id),
-                tb,
-                str(item.item_type),
-                Text(str(item.state), style=color),
-                item.name,
-                key=str(item.id),
-            )
-        if preserve_cursor and 0 <= saved_row < table.row_count:
-            table.move_cursor(row=saved_row)
-        self._update_filter_bar()
-
-    def _update_filter_bar(self) -> None:
-        closed = "[green]ON[/green]" if self._include_closed else "off"
-        others = "[green]ON[/green]" if self._show_others else "off"
-        self.query_one("#filter-bar", Label).update(
-            f"[a] closed: {closed}  ·  [A] others: {others}  ·  {len(self._items)} items"
+    def _refresh_view(self, *, preserve_cursor: bool = False) -> None:
+        self.query_one(WorkItemTable).populate(
+            self._items,
+            preserve_cursor=preserve_cursor,
+            show_project=self._show_project,
+        )
+        self.query_one(FilterBar).update_filters(
+            include_closed=self._include_closed,
+            show_others=self._show_others,
+            show_project=self._show_project,
+            item_count=len(self._items),
         )
 
-    def _selected_item(self) -> WorkItem | None:
-        table = self.query_one("#table", DataTable)
-        if not self._items or table.row_count == 0:
-            return None
-        idx = table.cursor_row
-        if 0 <= idx < len(self._items):
-            return self._items[idx]
+    def _cursor_item(self) -> WorkItem | None:
+        cursor_row = self.query_one(WorkItemTable).cursor_row
+        if self._items and 0 <= cursor_row < len(self._items):
+            return self._items[cursor_row]
         return None
 
     # --- Navigation ---
 
     def action_cursor_up(self) -> None:
-        self.query_one("#table", DataTable).action_cursor_up()
+        self.query_one(WorkItemTable).action_cursor_up()
 
     def action_cursor_down(self) -> None:
-        self.query_one("#table", DataTable).action_cursor_down()
+        self.query_one(WorkItemTable).action_cursor_down()
 
-    # --- Filter toggles ---
+    # --- Filter toggles (client-side — no network call) ---
 
     def action_toggle_closed(self) -> None:
         self._include_closed = not self._include_closed
-        self._load_all()
+        self._apply_filters()
+
+    def action_toggle_project(self) -> None:
+        self._show_project = not self._show_project
+        self._refresh_view()
+
+    # --- Filter toggles (server-side — refetch needed) ---
 
     def action_toggle_others(self) -> None:
         self._show_others = not self._show_others
-        self._load_all()
+        self._fetch_items()
 
     def action_reload(self) -> None:
-        self._load_all()
+        self._fetch_items()
 
     # --- Item actions ---
 
     async def action_edit_desc(self) -> None:
-        item = self._selected_item()
+        item = self._cursor_item()
         if item is None:
             return
         with self.suspend():
             self._engine.edit_work_item(item.id, edit_title=False)
-        self._load_all()
+        self._fetch_items()
 
     async def action_rename(self) -> None:
-        item = self._selected_item()
+        item = self._cursor_item()
         if item is None:
             return
         with self.suspend():
             self._engine.edit_work_item(item.id, edit_title=True)
-        self._load_all()
+        self._fetch_items()
 
+    @work
     async def action_pick_state(self) -> None:
-        item = self._selected_item()
+        item = self._cursor_item()
         if item is None:
             return
-        table = self.query_one("#table", DataTable)
-        saved_row = table.cursor_row
-        new_state: WorkItemState | None = await self.push_screen_wait(StatePickerScreen())
+        new_state: WorkItemState | None = await self.push_screen_wait(
+            StatePickerScreen()
+        )
         if new_state is None:
             return
-        await asyncio.to_thread(self._engine.update_work_item_state, item.id, new_state)
-        if 0 <= saved_row < len(self._items):
-            self._items[saved_row] = replace(self._items[saved_row], state=new_state)
-        self._refresh_table(preserve_cursor=True)
+        cursor_row = self.query_one(WorkItemTable).cursor_row
+        await asyncio.to_thread(
+            self._engine.update_work_item_state, item.id, new_state
+        )
+        if 0 <= cursor_row < len(self._items):
+            self._items = (
+                *self._items[:cursor_row],
+                replace(self._items[cursor_row], state=new_state),
+                *self._items[cursor_row + 1 :],
+            )
+        self._refresh_view(preserve_cursor=True)
         self.notify(f"State → {new_state.value}")
 
     async def action_timebox_next(self) -> None:
-        await self._shift_timebox(+1)
+        await self._move_timebox(+1)
 
     async def action_timebox_prev(self) -> None:
-        await self._shift_timebox(-1)
+        await self._move_timebox(-1)
 
-    async def _shift_timebox(self, direction: int) -> None:
-        item = self._selected_item()
+    async def _move_timebox(self, direction: int) -> None:
+        item = self._cursor_item()
         if item is None or not self._timeboxes:
             return
-        current_num = (
+        current_number = (
             item.iteration_path.optional_number if item.iteration_path else None
         )
-        if current_num is None:
+        if current_number is None:
             self.notify("Item has no timebox", severity="warning")
             return
-        sorted_tb = sorted(
-            self._timeboxes, key=lambda t: t.path.optional_number or 0
-        )
-        idx = next(
-            (i for i, t in enumerate(sorted_tb) if t.path.optional_number == current_num),
-            None,
-        )
-        if idx is None:
-            self.notify("Current timebox not found in list", severity="warning")
-            return
-        new_idx = idx + direction
-        if not (0 <= new_idx < len(sorted_tb)):
+        target = adjacent_timebox(self._timeboxes, current_number, direction)
+        if target is None:
             self.notify("No timebox in that direction", severity="warning")
             return
-        target_tb = sorted_tb[new_idx]
-        await asyncio.to_thread(self._engine.set_timebox, item.id, target_tb)
-        self.notify(f"TB → {target_tb.path.optional_number}")
-        self._load_all()
+        await asyncio.to_thread(self._engine.set_timebox, item.id, target)
+        self.notify(f"TB → {target.path.optional_number}")
+        self._fetch_items()
 
     def action_show_branch(self) -> None:
-        item = self._selected_item()
+        item = self._cursor_item()
         if item is None:
             return
-        self.notify(branch_name(item), title="Branch name", timeout=10)
+        name = branch_name(item)
+        copied = copy_to_clipboard(name)
+        suffix = " (copied)" if copied else ""
+        self.notify(name + suffix, title="Branch name", timeout=10)

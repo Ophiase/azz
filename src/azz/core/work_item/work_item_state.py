@@ -51,6 +51,7 @@ class WorkItemState(StrEnum):
 STATE_COLORS: Final = {
     WorkItemState.ACTIVE.value: "green",
     WorkItemState.NEW.value: "yellow",
+    WorkItemState.DESIGN.value: "blue",
     WorkItemState.RESOLVED.value: "cyan",
     WorkItemState.CLOSED.value: "grey50",
 }

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Any, Self, override
 
@@ -38,11 +39,19 @@ class WorkItem:
     def item_type(self) -> WorkItemType:
         return WorkItemType.DEFAULT
 
+    @property
+    def stripped_name(self) -> str:
+        if not self.name_project:
+            return self.name
+        prefix = f"[{self.name_project}]"
+        return re.sub(r"^[\s\-]+", "", self.name[len(prefix):])
+
     def state_style(self) -> str:
         return STATE_COLORS.get(self.state, "white")
 
-    def render_list(self, show_date: bool = False) -> str:
+    def render_list(self, show_date: bool = False, show_project: bool = True) -> str:
         style = self.state_style()
+        displayed_name = self.name if show_project else self.stripped_name
         iteration_path_number = (
             self.iteration_path.optional_number if self.iteration_path else None
         )
@@ -52,7 +61,7 @@ class WorkItem:
         return (
             f"[{style}]{date_prefix}{self.id} {iteration_path_number!s:<4} "
             f"{self.item_type:<10} {self.state:<10} "
-            f"{self.name}[/{style}]"
+            f"{displayed_name}[/{style}]"
         )
 
     def render_details(self) -> str:
