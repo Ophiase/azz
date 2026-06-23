@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -80,8 +81,14 @@ def register(app: typer.Typer, engine: Engine) -> None:
         ),
         description: str | None = typer.Option(None, "--description", "-d"),
         editor: bool = typer.Option(False, "--editor", "-e"),
+        description_file: str | None = typer.Option(
+            None, "--description-file", "-f",
+            help="Read description from file (skips editor)"
+        ),
     ) -> None:
-        if editor:
+        if description_file:
+            description = Path(description_file).read_text()
+        elif editor:
             description = edit_in_editor(description or "")
         item_type_parsed = (
             WorkItemType.from_user_input(item_type)
@@ -106,8 +113,17 @@ def register(app: typer.Typer, engine: Engine) -> None:
     def edit_work_item(
         work_item_id: int,
         edit_title: bool = typer.Option(False, "--title", "-t"),
+        description_file: str | None = typer.Option(
+            None, "--description-file", "-f",
+            help="Replace description from file (skips editor)"
+        ),
     ) -> None:
-        engine.edit_work_item(work_item_id, edit_title=edit_title)
+        if description_file:
+            item = engine.get_workitem(work_item_id)
+            updated = replace(item, description=Path(description_file).read_text())
+            engine.update_workitem(updated)
+        else:
+            engine.edit_work_item(work_item_id, edit_title=edit_title)
 
     def delete_work_item(
         work_item_ids: Annotated[list[int], typer.Argument()],

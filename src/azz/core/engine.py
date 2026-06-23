@@ -205,6 +205,16 @@ class Engine:
         item = replace(item, item_type=item_type, iteration_path=timebox.path)
         return item
 
+    def update_work_item_title(self, work_item_id: int, new_title: str) -> None:
+        run_az_command_sync(
+            "boards",
+            "work-item",
+            "update",
+            f"--id={work_item_id}",
+            "--fields",
+            f"System.Title={new_title}",
+        )
+
     def delete_workitem_helper(self, work_item_id: int) -> None:
         cmd = [
             "boards",
