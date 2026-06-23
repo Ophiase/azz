@@ -5,6 +5,7 @@ from typing import Annotated
 import typer
 from rich import print
 
+from azz.core.branch import branch_name
 from azz.core.editor import edit_in_editor
 from azz.core.engine import Engine
 from azz.core.engine_config import EngineConfig
@@ -54,8 +55,11 @@ class AzzApp:
         command("state")(self.state)
         command("close")(partial(self.state, state="Closed"))
         command("resolve")(partial(self.state, state="Resolved"))
+        # branch
+        command("branch")(self.branch)
         # interactive
-        command("interactive")(self.interactive)
+        for n in ["interactive", "i"]:
+            command(n)(self.interactive)
 
     def list_work_items(
         self,
@@ -220,8 +224,15 @@ class AzzApp:
     def show_pull_request(self, pr_id: int):
         raise NotImplementedError("Pull request details are not implemented yet")
 
+    def branch(self, work_item_id: int):
+        """Print the git branch name for a work item."""
+        work_item = self._engine.get_workitem(work_item_id)
+        print(branch_name(work_item))
+
     def interactive(self):
-        raise NotImplementedError("Interactive mode is not implemented yet")
+        """Launch the interactive TUI (lazygit-style)."""
+        from azz.tui.app import AzzTUI
+        AzzTUI(self._engine).run()
 
     def run(self):
         self._app()
