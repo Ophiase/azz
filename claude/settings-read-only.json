@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(azz list*)",
+      "Bash(azz l *)",
+      "Bash(azz l)",
+      "Bash(azz show *)",
+      "Bash(azz timebox)",
+      "Bash(azz list_timebox)",
+      "Bash(azz branch *)"
+    ],
+    "deny": [
+      "Bash(azz create*)",
+      "Bash(azz c *)",
+      "Bash(azz edit*)",
+      "Bash(azz delete*)",
+      "Bash(azz state*)",
+      "Bash(azz close*)",
+      "Bash(azz resolve*)",
+      "Bash(azz attach*)",
+      "Bash(azz set_timebox*)"
+    ]
+  }
+}

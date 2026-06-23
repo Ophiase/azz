@@ -31,3 +31,12 @@ Quick summary:
 - `StrEnum`/`IntEnum` for enums.
 - Prefer immutable types: accept `Sequence`, return `tuple`.
 - Comments only when the *why* is non-obvious.
+
+## Remarks
+
+- Markdown: linted with `rumdl`
+  - always specify the language on fenced code blocks (e.g. ` ```python `,
+    ` ```bash `)
+  - be careful about line length (break them)
+  - after editing any `.md` file, run `just rumdl` to check and
+    `just rumdl-fmt` to auto-fix formatting

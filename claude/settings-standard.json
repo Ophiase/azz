@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(azz list*)",
+      "Bash(azz l *)",
+      "Bash(azz l)",
+      "Bash(azz show *)",
+      "Bash(azz timebox)",
+      "Bash(azz list_timebox)",
+      "Bash(azz branch *)"
+    ],
+    "deny": [
+      "Bash(azz edit*)",
+      "Bash(azz delete*)"
+    ]
+  }
+}

@@ -11,6 +11,14 @@
 @install-dev:
     uv tool install --editable .
 
+[group("dev")]
+@rumdl:
+    rumdl check .
+
+[group("dev")]
+@rumdl-fmt:
+    rumdl fmt .
+
 [default]
 @_list:
     just -l
