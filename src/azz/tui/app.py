@@ -15,6 +15,7 @@ from azz.core.engine import Engine
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItemState
 from azz.core.work_item.work_item import WorkItem
+from azz.tui.create_screen import CreateScreen, NewTaskData
 from azz.tui.detail_screen import DetailScreen
 from azz.tui.filter_bar import FilterBar
 from azz.tui.rename_screen import RenameScreen
@@ -46,6 +47,7 @@ class AzzTUI(App[None]):
         Binding("j", "cursor_down", "Down", show=False),
         Binding("up", "cursor_up", "Up", show=False),
         Binding("down", "cursor_down", "Down", show=False),
+        Binding("n", "new_task", "New"),
         Binding("e", "edit_desc", "Edit"),
         Binding("r", "rename", "Rename"),
         Binding("s", "pick_state", "State"),
@@ -218,6 +220,30 @@ class AzzTUI(App[None]):
             self._engine.update_work_item_title, item.id, full_title
         )
         self.notify(f"Renamed → {new_title}")
+        self._fetch_items()
+
+    @work
+    async def action_new_task(self) -> None:
+        current_timebox = next(
+            (tb for tb in self._timeboxes if tb.is_current), None
+        )
+        data: NewTaskData | None = await self.push_screen_wait(
+            CreateScreen(self._timeboxes, current_timebox)
+        )
+        if data is None:
+            return
+        item = await asyncio.to_thread(
+            self._engine.create_work_item_helper,
+            data.title,
+            item_type=data.item_type,
+        )
+        if data.state != WorkItemState.NEW:
+            await asyncio.to_thread(
+                self._engine.update_work_item_state, item.id, data.state
+            )
+        if data.timebox is not None:
+            await asyncio.to_thread(self._engine.set_timebox, item.id, data.timebox)
+        self.notify(f"Created: {data.title}")
         self._fetch_items()
 
     @work
