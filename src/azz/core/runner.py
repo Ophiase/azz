@@ -1,6 +1,9 @@
 import asyncio
 import json
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from logging import getLogger
+from typing import Any
 
 type AzCommand = str
 
@@ -9,9 +12,6 @@ logger = getLogger(__name__)
 
 
 def normalize_command_arg(arg: str) -> str:
-    """
-    Normalize command arguments for cross-platform subprocess usage.
-    """
     return arg.replace("\\", "/")
 
 
@@ -22,16 +22,13 @@ async def run_command(*cmd: str) -> tuple[str, str]:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
     stdout, stderr = await process.communicate()
     logger.debug("Result: %s", stdout.decode())
-
     return stdout.decode(), stderr.decode()
 
 
 async def run_az_command(*args: str) -> list | dict:
     cmd = ["az", *args]
-
     stdout, stderr = await run_command(*cmd)
 
     if stderr.strip():
@@ -51,34 +48,25 @@ async def run_az_command(*args: str) -> list | dict:
 
 async def run_az_void(*args: str) -> None:
     cmd = ["az", *args]
-
     _, stderr = await run_command(*cmd)
-
     if stderr.strip():
         logger.debug(stderr)
 
-    return None
 
-
-def run_az_void_sync(*args: str) -> None:
-    """
-    Sync wrapper for CLI usage.
-    Ensures proper event loop handling.
-    """
-    try:
-        return asyncio.run(run_az_void(*args))
-    except RuntimeError:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(run_az_void(*args))
+def _run_in_thread(coro: Any) -> Any:
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 def run_az_command_sync(*args: str) -> list | dict:
-    """
-    Sync wrapper for CLI usage.
-    Ensures proper event loop handling.
-    """
     try:
         return asyncio.run(run_az_command(*args))
     except RuntimeError:
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(run_az_command(*args))
+        return _run_in_thread(run_az_command(*args))
+
+
+def run_az_void_sync(*args: str) -> None:
+    try:
+        asyncio.run(run_az_void(*args))
+    except RuntimeError:
+        _run_in_thread(run_az_void(*args))

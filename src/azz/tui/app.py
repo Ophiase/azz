@@ -75,6 +75,7 @@ class AzzTUI(App[None]):
         yield Footer()
 
     def on_mount(self) -> None:
+        self.theme = "rose-pine-dawn"
         self._fetch_items()
 
     @work(exclusive=True)
