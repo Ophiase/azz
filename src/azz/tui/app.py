@@ -219,7 +219,6 @@ class AzzTUI(App[None]):
         await asyncio.to_thread(
             self._engine.update_work_item_title, item.id, full_title
         )
-        self.notify(f"Renamed → {new_title}", timeout=2)
         self._fetch_items()
 
     @work
@@ -244,7 +243,6 @@ class AzzTUI(App[None]):
             )
         if data.timebox is not None:
             await asyncio.to_thread(self._engine.set_timebox, item.id, data.timebox)
-        self.notify(f"Created: {data.title}", timeout=2)
         self._fetch_items()
 
     @work
@@ -268,7 +266,6 @@ class AzzTUI(App[None]):
                 *self._items[cursor_row + 1 :],
             )
         self._refresh_view(preserve_cursor=True)
-        self.notify(f"State → {new_state.value}", timeout=2)
 
     async def action_timebox_next(self) -> None:
         await self._move_timebox(+1)
@@ -291,7 +288,6 @@ class AzzTUI(App[None]):
             self.notify("No timebox in that direction", severity="warning", timeout=3)
             return
         await asyncio.to_thread(self._engine.set_timebox, item.id, target)
-        self.notify(f"TB → {target.path.optional_number}", timeout=2)
         self._fetch_items()
 
     async def action_show_branch(self) -> None:
@@ -301,4 +297,4 @@ class AzzTUI(App[None]):
         name = branch_name(item)
         copied = await asyncio.to_thread(copy_to_clipboard, name)
         suffix = " (copied)" if copied else ""
-        self.notify(name + suffix, title="Branch name", timeout=5)
+        self.notify(name + suffix, title="Branch name", timeout=1)
