@@ -58,6 +58,10 @@ class AzzTUI(App[None]):
         Binding("o", "toggle_others", "Others", show=False),
         Binding("c", "toggle_current_timebox", "[c]Current"),
         Binding("p", "toggle_project", "[p]Project"),
+        Binding("v", "toggle_visual", "Visual", show=False),
+        Binding("g", "cursor_top", "Top", show=False),
+        Binding("G", "cursor_bottom", "Bottom", show=False),
+        Binding("escape", "escape_mode", "Esc", show=False),
         Binding("b", "show_branch", "Branch"),
         Binding("R", "reload", "Reload"),
         Binding("q", "quit", "Quit"),
@@ -73,6 +77,10 @@ class AzzTUI(App[None]):
         self._show_others: bool = False
         self._current_timebox_only: bool = False
         self._show_project: bool = False
+        self._visual_mode: bool = False
+        self._visual_anchor: int = 0
+        self._committed_ids: frozenset[int] = frozenset()
+        self._selected_ids: frozenset[int] = frozenset()
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -106,7 +114,7 @@ class AzzTUI(App[None]):
             None,
         )
 
-    def _apply_filters(self) -> None:
+    def _apply_filters(self, *, preserve_cursor: bool = False) -> None:
         visible_states = _ALL_STATES if self._include_closed else _OPEN_STATES
         items = tuple(
             item for item in self._all_items if item.state in visible_states
@@ -126,13 +134,14 @@ class AzzTUI(App[None]):
             ),
             reverse=True,
         ))
-        self._refresh_view()
+        self._refresh_view(preserve_cursor=preserve_cursor)
 
     def _refresh_view(self, *, preserve_cursor: bool = False) -> None:
         self.query_one(WorkItemTable).populate(
             self._items,
             preserve_cursor=preserve_cursor,
             show_project=self._show_project,
+            selected_ids=self._selected_ids,
         )
         self.query_one(FilterBar).update_filters(
             include_closed=self._include_closed,
@@ -140,6 +149,8 @@ class AzzTUI(App[None]):
             current_timebox_only=self._current_timebox_only,
             show_project=self._show_project,
             item_count=len(self._items),
+            visual_mode=self._visual_mode,
+            selection_count=len(self._selected_ids),
         )
 
     def _cursor_item(self) -> WorkItem | None:
@@ -152,9 +163,69 @@ class AzzTUI(App[None]):
 
     def action_cursor_up(self) -> None:
         self.query_one(WorkItemTable).action_cursor_up()
+        if self._visual_mode:
+            self._update_visual_selection()
 
     def action_cursor_down(self) -> None:
         self.query_one(WorkItemTable).action_cursor_down()
+        if self._visual_mode:
+            self._update_visual_selection()
+
+    def action_cursor_top(self) -> None:
+        self.query_one(WorkItemTable).move_cursor(row=0)
+        if self._visual_mode:
+            self._update_visual_selection()
+
+    def action_cursor_bottom(self) -> None:
+        table = self.query_one(WorkItemTable)
+        table.move_cursor(row=max(0, table.row_count - 1))
+        if self._visual_mode:
+            self._update_visual_selection()
+
+    def action_toggle_visual(self) -> None:
+        if self._visual_mode:
+            # Commit the current visual range and exit
+            self._committed_ids = self._selected_ids
+            self._visual_mode = False
+        else:
+            # Enter visual mode: keep committed selection, add cursor as new anchor
+            self._committed_ids = self._selected_ids
+            cursor = self.query_one(WorkItemTable).cursor_row
+            self._visual_anchor = cursor
+            self._visual_mode = True
+            item = self._cursor_item()
+            self._selected_ids = self._committed_ids | (
+                frozenset({item.id}) if item else frozenset()
+            )
+        self._refresh_view(preserve_cursor=True)
+
+    def action_escape_mode(self) -> None:
+        if self._visual_mode:
+            # Commit and exit visual mode — keep selection
+            self._committed_ids = self._selected_ids
+            self._visual_mode = False
+            self._refresh_view(preserve_cursor=True)
+        elif self._selected_ids:
+            self._committed_ids = frozenset()
+            self._selected_ids = frozenset()
+            self._refresh_view(preserve_cursor=True)
+
+    def _update_visual_selection(self) -> None:
+        cursor = self.query_one(WorkItemTable).cursor_row
+        start = min(cursor, self._visual_anchor)
+        end = max(cursor, self._visual_anchor)
+        visual_range = frozenset(
+            self._items[i].id
+            for i in range(start, min(end + 1, len(self._items)))
+        )
+        self._selected_ids = self._committed_ids | visual_range
+        self._refresh_view(preserve_cursor=True)
+
+    def _selected_or_cursor_items(self) -> tuple[WorkItem, ...]:
+        if self._selected_ids:
+            return tuple(i for i in self._items if i.id in self._selected_ids)
+        item = self._cursor_item()
+        return (item,) if item else ()
 
     @on(DataTable.RowSelected)
     def on_row_selected(self) -> None:
@@ -247,25 +318,24 @@ class AzzTUI(App[None]):
 
     @work
     async def action_pick_state(self) -> None:
-        item = self._cursor_item()
-        if item is None:
+        targets = self._selected_or_cursor_items()
+        if not targets:
             return
         new_state: WorkItemState | None = await self.push_screen_wait(
             StatePickerScreen()
         )
         if new_state is None:
             return
-        cursor_row = self.query_one(WorkItemTable).cursor_row
-        await asyncio.to_thread(
-            self._engine.update_work_item_state, item.id, new_state
+        await asyncio.gather(*[
+            asyncio.to_thread(self._engine.update_work_item_state, item.id, new_state)
+            for item in targets
+        ])
+        updated_ids = frozenset(item.id for item in targets)
+        self._all_items = tuple(
+            replace(i, state=new_state) if i.id in updated_ids else i
+            for i in self._all_items
         )
-        if 0 <= cursor_row < len(self._items):
-            self._items = (
-                *self._items[:cursor_row],
-                replace(self._items[cursor_row], state=new_state),
-                *self._items[cursor_row + 1 :],
-            )
-        self._refresh_view(preserve_cursor=True)
+        self._apply_filters(preserve_cursor=True)
 
     async def action_timebox_next(self) -> None:
         await self._move_timebox(+1)
@@ -274,20 +344,26 @@ class AzzTUI(App[None]):
         await self._move_timebox(-1)
 
     async def _move_timebox(self, direction: int) -> None:
-        item = self._cursor_item()
-        if item is None or not self._timeboxes:
+        targets = self._selected_or_cursor_items()
+        if not targets or not self._timeboxes:
             return
-        current_number = (
-            item.iteration_path.optional_number if item.iteration_path else None
-        )
-        if current_number is None:
-            self.notify("Item has no timebox", severity="warning", timeout=3)
-            return
-        target = adjacent_timebox(self._timeboxes, current_number, direction)
-        if target is None:
+        moves: list[tuple[int, Iteration]] = []
+        for item in targets:
+            current_number = (
+                item.iteration_path.optional_number if item.iteration_path else None
+            )
+            if current_number is None:
+                continue
+            target_tb = adjacent_timebox(self._timeboxes, current_number, direction)
+            if target_tb is not None:
+                moves.append((item.id, target_tb))
+        if not moves:
             self.notify("No timebox in that direction", severity="warning", timeout=3)
             return
-        await asyncio.to_thread(self._engine.set_timebox, item.id, target)
+        await asyncio.gather(*[
+            asyncio.to_thread(self._engine.set_timebox, item_id, target_tb)
+            for item_id, target_tb in moves
+        ])
         self._fetch_items()
 
     async def action_show_branch(self) -> None:

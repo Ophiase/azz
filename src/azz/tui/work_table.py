@@ -22,7 +22,7 @@ class WorkItemTable(DataTable):
 
     def on_mount(self) -> None:
         self.cursor_type = "row"
-        self.add_columns("Date", "ID", "TB", "Type", "State", "Name")
+        self.add_columns("", "Date", "ID", "TB", "Type", "State", "Name")
 
     def populate(
         self,
@@ -30,18 +30,26 @@ class WorkItemTable(DataTable):
         *,
         preserve_cursor: bool = False,
         show_project: bool = False,
+        selected_ids: frozenset[int] = frozenset(),
     ) -> None:
         saved_row = self.cursor_row
         self.clear()
         for item in items:
-            self.add_row(*_item_row(item, show_project=show_project), key=str(item.id))
+            self.add_row(
+                *_item_row(
+                    item,
+                    show_project=show_project,
+                    selected=item.id in selected_ids,
+                ),
+                key=str(item.id),
+            )
         if preserve_cursor and 0 <= saved_row < self.row_count:
             self.move_cursor(row=saved_row)
 
 
 def _item_row(
-    item: WorkItem, *, show_project: bool
-) -> tuple[str, str, str, str, Text, str]:
+    item: WorkItem, *, show_project: bool, selected: bool
+) -> tuple[Text, str, str, str, str, Text, str]:
     timebox_number = (
         item.iteration_path.optional_number if item.iteration_path else None
     )
@@ -52,7 +60,9 @@ def _item_row(
         else "─────"
     )
     display_name = item.name if show_project else item.stripped_name
+    marker = Text("◆", style="bold cyan") if selected else Text(" ")
     return (
+        marker,
         date,
         str(item.id),
         str(timebox_number) if timebox_number is not None else "─",
