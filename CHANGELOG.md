@@ -8,6 +8,10 @@ Todo:
 Done:
 
 - interactive:
+    - create item
+        - more work item types
+        - working timebox
+        - description field
     - show item content
     - fix branch crash
 - timebox management

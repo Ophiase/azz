@@ -3,7 +3,7 @@ import re
 from azz.core.work_item.work_item import WorkItem
 
 
-def branch_name(work_item: WorkItem) -> str:
+def branch_name(work_item: WorkItem, count: int = 5) -> str:
     """Generate a branch name: dev/tb-<TB>-<ID>-<word1>-<word2>-<word3>"""
     timebox = (
         work_item.iteration_path.optional_number
@@ -18,7 +18,7 @@ def branch_name(work_item: WorkItem) -> str:
         name = name[len(prefix):]
         name = re.sub(r"^[\s\-]+", "", name)
 
-    words = re.findall(r"[a-zA-Z]+", name)[:3]
+    words = re.findall(r"[a-zA-Z]+", name)[:count]
     words_part = "-".join(w.lower() for w in words)
 
     tb_part = f"tb-{timebox}-" if timebox is not None else ""
