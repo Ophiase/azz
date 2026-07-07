@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
-from typing import ClassVar, Final
+from typing import Any, ClassVar, Final
 
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -22,6 +22,15 @@ from azz.tui.rename_screen import RenameScreen
 from azz.tui.state_picker import StatePickerScreen
 from azz.tui.timebox_nav import adjacent_timebox
 from azz.tui.work_table import WorkItemTable
+
+_SORT_DEFAULT_REVERSE: Final[dict[str, bool]] = {
+    "date": True,
+    "id": True,
+    "tb": True,
+    "type": False,
+    "state": False,
+    "name": False,
+}
 
 _ALL_STATES: Final = frozenset({
     WorkItemState.ACTIVE,
@@ -48,6 +57,8 @@ class AzzTUI(App[None]):
         Binding("up", "cursor_up", "Up", show=False),
         Binding("down", "cursor_down", "Down", show=False),
         Binding("n", "new_task", "New"),
+        Binding("N", "new_child_task", "New child", show=False),
+        Binding("y", "yank_id", "Yank ID", show=False),
         Binding("e", "edit_desc", "Edit"),
         Binding("r", "rename", "Rename"),
         Binding("s", "pick_state", "State"),
@@ -77,6 +88,8 @@ class AzzTUI(App[None]):
         self._show_others: bool = False
         self._current_timebox_only: bool = False
         self._show_project: bool = False
+        self._sort_column: str = "date"
+        self._sort_reverse: bool = True
         self._visual_mode: bool = False
         self._visual_anchor: int = 0
         self._committed_ids: frozenset[int] = frozenset()
@@ -129,12 +142,32 @@ class AzzTUI(App[None]):
                 )
         self._items = tuple(sorted(
             items,
-            key=lambda item: (
-                item.changed_date.timestamp() if item.changed_date else 0.0
-            ),
-            reverse=True,
+            key=self._sort_key,
+            reverse=self._sort_reverse,
         ))
         self._refresh_view(preserve_cursor=preserve_cursor)
+
+    def _sort_key(self, item: WorkItem) -> Any:
+        match self._sort_column:
+            case "date":
+                return item.changed_date.timestamp() if item.changed_date else 0.0
+            case "id":
+                return item.id
+            case "tb":
+                return (
+                    item.iteration_path.optional_number
+                    if item.iteration_path
+                    and item.iteration_path.optional_number is not None
+                    else -1
+                )
+            case "type":
+                return str(item.item_type)
+            case "state":
+                return item.state.value
+            case "name":
+                return (item.stripped_name or "").lower()
+            case _:
+                return 0.0
 
     def _refresh_view(self, *, preserve_cursor: bool = False) -> None:
         self.query_one(WorkItemTable).populate(
@@ -142,6 +175,8 @@ class AzzTUI(App[None]):
             preserve_cursor=preserve_cursor,
             show_project=self._show_project,
             selected_ids=self._selected_ids,
+            sort_column=self._sort_column,
+            sort_reverse=self._sort_reverse,
         )
         self.query_one(FilterBar).update_filters(
             include_closed=self._include_closed,
@@ -227,6 +262,18 @@ class AzzTUI(App[None]):
         item = self._cursor_item()
         return (item,) if item else ()
 
+    @on(DataTable.HeaderSelected)
+    def on_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        col = str(event.column_key)
+        if col == "marker":
+            return
+        if col == self._sort_column:
+            self._sort_reverse = not self._sort_reverse
+        else:
+            self._sort_column = col
+            self._sort_reverse = _SORT_DEFAULT_REVERSE.get(col, False)
+        self._apply_filters(preserve_cursor=True)
+
     @on(DataTable.RowSelected)
     def on_row_selected(self) -> None:
         self.action_show_detail()
@@ -292,16 +339,17 @@ class AzzTUI(App[None]):
         )
         self._fetch_items()
 
-    @work
-    async def action_new_task(self) -> None:
+    async def _open_create_screen(self) -> NewTaskData | None:
         current_timebox = next(
             (tb for tb in self._timeboxes if tb.is_current), None
         )
-        data: NewTaskData | None = await self.push_screen_wait(
+        return await self.push_screen_wait(
             CreateScreen(self._timeboxes, current_timebox)
         )
-        if data is None:
-            return
+
+    async def _apply_new_task(
+        self, data: NewTaskData, *, parent_id: int | None = None
+    ) -> None:
         item = await asyncio.to_thread(
             self._engine.create_work_item_helper,
             data.title,
@@ -314,7 +362,31 @@ class AzzTUI(App[None]):
             )
         if data.timebox is not None:
             await asyncio.to_thread(self._engine.set_timebox, item.id, data.timebox)
+        if parent_id is not None:
+            await asyncio.to_thread(self._engine.link_parent, item.id, parent_id)
         self._fetch_items()
+
+    @work
+    async def action_new_task(self) -> None:
+        data = await self._open_create_screen()
+        if data is not None:
+            await self._apply_new_task(data)
+
+    @work
+    async def action_new_child_task(self) -> None:
+        parent = self._cursor_item()
+        if parent is None:
+            return
+        data = await self._open_create_screen()
+        if data is not None:
+            await self._apply_new_task(data, parent_id=parent.id)
+
+    async def action_yank_id(self) -> None:
+        item = self._cursor_item()
+        if item is None:
+            return
+        await asyncio.to_thread(copy_to_clipboard, str(item.id))
+        self.notify(str(item.id), title="ID", timeout=1)
 
     @work
     async def action_pick_state(self) -> None:

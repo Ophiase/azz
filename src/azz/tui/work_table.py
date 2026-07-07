@@ -16,13 +16,33 @@ _STATE_STYLES: Final[dict[str, str]] = {
     WorkItemState.CLOSED.value: "bright_black",
 }
 
+_COLUMN_LABELS: Final[tuple[tuple[str, str], ...]] = (
+    ("date", "Date"),
+    ("id", "ID"),
+    ("tb", "TB"),
+    ("type", "Type"),
+    ("state", "State"),
+    ("name", "Name"),
+)
+
 
 class WorkItemTable(DataTable):
     DEFAULT_CSS = "WorkItemTable { height: 1fr; }"
 
     def on_mount(self) -> None:
         self.cursor_type = "row"
-        self.add_columns("", "Date", "ID", "TB", "Type", "State", "Name")
+        self._build_columns()
+
+    def _build_columns(
+        self,
+        sort_column: str = "date",
+        sort_reverse: bool = True,
+    ) -> None:
+        arrow = "↓" if sort_reverse else "↑"
+        self.add_column("", key="marker")
+        for key, base_label in _COLUMN_LABELS:
+            label = f"{base_label} {arrow}" if key == sort_column else base_label
+            self.add_column(label, key=key)
 
     def populate(
         self,
@@ -31,9 +51,12 @@ class WorkItemTable(DataTable):
         preserve_cursor: bool = False,
         show_project: bool = False,
         selected_ids: frozenset[int] = frozenset(),
+        sort_column: str = "date",
+        sort_reverse: bool = True,
     ) -> None:
         saved_row = self.cursor_row
-        self.clear()
+        self.clear(columns=True)
+        self._build_columns(sort_column=sort_column, sort_reverse=sort_reverse)
         for item in items:
             self.add_row(
                 *_item_row(
