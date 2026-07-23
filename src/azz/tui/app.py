@@ -23,6 +23,11 @@ from azz.tui.state_picker import StatePickerScreen
 from azz.tui.timebox_nav import adjacent_timebox
 from azz.tui.work_table import WorkItemTable
 
+# Must match WorkItemTable._build_columns column insertion order (after marker).
+_SORTABLE_COLUMNS: Final[tuple[str, ...]] = (
+    "date", "id", "tb", "type", "state", "name"
+)
+
 _SORT_DEFAULT_REVERSE: Final[dict[str, bool]] = {
     "date": True,
     "id": True,
@@ -264,9 +269,13 @@ class AzzTUI(App[None]):
 
     @on(DataTable.HeaderSelected)
     def on_header_selected(self, event: DataTable.HeaderSelected) -> None:
-        col = str(event.column_key)
-        if col == "marker":
+        # column 0 is the marker; columns 1+ map to _SORTABLE_COLUMNS in order.
+        # Use column_index (reliable int) instead of str(column_key) which
+        # does not round-trip cleanly in all Textual versions.
+        idx = event.column_index - 1
+        if idx < 0 or idx >= len(_SORTABLE_COLUMNS):
             return
+        col = _SORTABLE_COLUMNS[idx]
         if col == self._sort_column:
             self._sort_reverse = not self._sort_reverse
         else:
