@@ -25,6 +25,8 @@ src/azz/plan/
   writer.py       upserts single keys back into an existing .md
   slug.py         WorkItem → filename (human label, no machine meaning)
   diff.py         (LocalItem[], Engine) → Changeset
+  resolver.py     RemoteResolver — all tracked ids in one query
+  batch_reader.py BatchWorkItemReader — the optional batching capability
   comparison.py   field-by-field diffing, HTML/Markdown normalization
   freshness.py    remote_changed_date heuristic
   applier.py      pushes one Change to the remote
@@ -34,17 +36,44 @@ src/azz/plan/
   tracking.py     TrackingStatus glyphs — cache-based, not yet wired
   models/         one class per file
 src/azz/cache/
-  store.py        CacheStore — per-id JSON files under .azz/cache/
+  store.py        CacheStore — per-id JSON files, one store per generation
   payload.py      ItemPayload — raw az JSON ↔ WorkItem
 src/azz/backend/
   protocol.py     WorkItemBackend — the 12-method surface every caller uses
+src/azz/tui/
+  plan_state.py   PlanState — the plan's view of the on-screen items
+  plan_legend.py  the `?` legend, built from TrackingStatus
 ```
+
+`BatchWorkItemReader` is deliberately *not* part of `WorkItemBackend`: it is
+checked at runtime, so a backend without the capability still works and just
+costs one call per id. Keep optional capabilities as separate
+`runtime_checkable` protocols rather than widening the main surface.
 
 `Engine` satisfies `WorkItemBackend` structurally, and so would a
 cache-backed source. New code that reads work items should depend on the
 protocol, not on `Engine` — that is what makes offline and demo modes
 possible without callers knowing the difference. Existing code still imports
 `Engine` directly; migrate opportunistically, not in bulk.
+
+## The cache has two generations
+
+Both are `CacheStore` instances over different directories, from
+`plan/discovery.py`:
+
+- `.azz/cache/items/` — the **merge base**: the remote state each intent file
+  was last synced from. Only `pull` and `push` advance it, because only those
+  leave the working tree agreeing with the remote.
+- `.azz/cache/fetched/items/` — the **newest remote state** `fetch` saw, which
+  may be ahead of the working tree.
+
+Keeping them apart is the point: a `fetch` must never destroy the only record
+of what a file was synced from. Do not collapse them, and do not advance the
+merge base from `fetch` except for files it actually brought level with the
+remote.
+
+`.azz/cache/fetched-at` stamps the last fetch, so a command can report how
+stale the cache is.
 
 ## Invariants
 
@@ -72,24 +101,28 @@ possible without callers knowing the difference. Existing code still imports
 
 ## Current state of the cache migration
 
-`src/azz/cache/` and `plan/tracking.py` exist and are correct, but they are
-**scaffolding — nothing writes the cache and nothing calls
-`tracking_statuses` yet**. Do not treat this as a bug to fix opportunistically.
-
-Where the code stands against the proposed phasing:
+Against the phasing proposed in the 2026-07-31 record. Check this table
+against `git log` before trusting it — the engine is under active work.
 
 | Phase | State |
 |---|---|
-| 1. Batch remote lookups in `compute_changeset` | not done — `diff.py` still calls `Engine.get_workitem` once per file |
-| 2. `.azz/cache/` populated by `fetch` | store written, **not populated** |
-| 3. Three-way offline `status`, `azz plan pull` | not started |
-| 4. Drop `remote_changed_date` | not started — `freshness.py` is still live |
-| 5. TUI glyph column | `TrackingStatus` ready, not wired |
+| 1. Batch remote lookups in `compute_changeset` | **done** — `RemoteResolver` resolves all tracked ids in one query |
+| 2. `.azz/cache/` populated by `fetch` | **done** — both generations written; nothing read them at the time |
+| 3. Three-way offline `status`, `azz plan pull` | in progress |
+| 4. Drop `remote_changed_date` | **done** — still tolerated in `KNOWN_FIELDS` so old files parse |
+| 5. TUI glyph column | **done** — `PlanState` wraps `tracking.py`, `P` refreshes, `?` shows the legend |
 | 6. TUI local-edit mode | not started |
 
-Phase 1 is independent and safe. Phase 3 changes what `azz plan fetch`
-means and needs its own review before implementation — do not start it
-without being asked.
+Phase 1 is independent and still worth doing on its own. Phase 3 changes what
+`azz plan fetch` means — do not start or extend it without being asked.
+
+Two properties the landed work relies on, worth preserving:
+
+- **Plan state never breaks the TUI.** Any failure loading it degrades to an
+  empty mapping, and unparseable intent files are skipped rather than raised.
+  A broken `.azz/` must not stop remote items from rendering.
+- **Glyphs, colours and wording come from `TrackingStatus`**, so the TUI
+  cannot drift from the plan engine. Add a state there, not in the TUI.
 
 ## Permission model
 

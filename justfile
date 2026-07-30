@@ -18,6 +18,10 @@ mod agent 'agent.just'
     just agent::checks
 
 [group("dev")]
+@test:
+    uv run pytest
+
+[group("dev")]
 @version:
     just agent::version
 

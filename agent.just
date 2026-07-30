@@ -2,12 +2,13 @@
 # `just *` is already allow-listed, so adding a recipe here needs no
 # settings.json change.
 
-# Markdown lint + lint + type-check, in one command with a real exit code.
+# Markdown lint + lint + type-check + tests, one command, real exit code.
 [group("agent")]
 @checks:
     rumdl check .
     uv run ruff check . --fix
     uv run ty check .
+    uv run pytest -q
 
 # VERSION, pyproject version and the latest CHANGELOG entry — these must agree.
 [group("agent")]

@@ -103,6 +103,31 @@ then a short docstring stating the input and the output is required.
 Self-explanatory code is the goal; a signature that is impossible to decode is
 not self-explanatory just because it has no comment.
 
+## Tests
+
+`just test` runs pytest. We want tests, but only ones that earn their
+maintenance cost.
+
+A test is worth writing when it pins a **deterministic algorithmic
+behaviour** — parsing, diffing, normalization, slug generation — and
+especially when it defends an invariant documented in
+[PLAN.md](./PLAN.md). A broken invariant is a silent data-loss bug; that is
+what the suite is for.
+
+A test is not worth writing when it needs the network, an `az` subprocess,
+credentials, or a mock of one. Do not mock `Engine` to assert that a wrapper
+called it. Before adding one, ask:
+
+- is it too specific, creating a maintenance burden on every micro-change?
+- is it algorithmic, or is it infrastructure dressed up as a unit test?
+
+Don't flood the codebase with tests instead of designing good architecture.
+Each test should be justifiable in one sentence.
+
+Also: stop hardcoding values when a constant exists. Parametrize over the
+module's own constant (`QUOTE_TRIGGERS`, `KNOWN_FIELDS`) rather than
+restating its contents — then the test follows the code.
+
 ## Remarks
 
 Behaviors to avoid, with real examples.
