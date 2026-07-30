@@ -7,9 +7,14 @@
       "Bash(azz show *)",
       "Bash(azz timebox)",
       "Bash(azz list_timebox)",
-      "Bash(azz branch *)"
+      "Bash(azz branch *)",
+      "Bash(azz plan init)",
+      "Bash(azz plan fetch)",
+      "Bash(azz plan fetch *)",
+      "Bash(azz plan status)"
     ],
     "deny": [
+      "Bash(azz plan resolve*)",
       "Bash(azz create*)",
       "Bash(azz c *)",
       "Bash(azz edit*)",

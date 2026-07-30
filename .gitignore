@@ -221,3 +221,6 @@ __marimo__/
 
 .envrc
 prototype
+
+# azz plan engine — local task intents
+.azz/

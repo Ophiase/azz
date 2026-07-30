@@ -59,7 +59,24 @@ azz branch <ID>
 Output: a normalized git branch name derived from the work item title, also
 copied to clipboard. Read-only — does not create a branch.
 
+## Plan engine (local files only — never writes to the remote)
+
+```text
+azz plan init                    # create the gitignored .azz/ directory
+azz plan fetch [<ID> ...]        # mirror remote items into .azz/tasks/*.md
+azz plan status                  # drift between .azz/tasks and the remote
+```
+
+`fetch` options: `-l N` / `--limit N` (default 20, most recently changed),
+`-a` / `--all` to include Closed items, `-c` / `--current-timebox`.
+`-f` / `--force` overwrites locally edited files — ask the user first.
+
+`status` prints one line per file — `[NEW]`, `[DRIFT]`, `[NOOP]`, or
+`[GONE]`. All three commands are read-only with respect to Azure DevOps;
+writing the `.azz/tasks/*.md` files themselves is safe and purely local.
+
 ---
 
 Do not use `azz create`, `azz edit`, `azz delete`, `azz state`, `azz close`,
-`azz resolve`, `azz attach`, or `azz set_timebox` without explicit user instruction.
+`azz resolve`, `azz attach`, `azz set_timebox`, or `azz plan resolve`
+without explicit user instruction.

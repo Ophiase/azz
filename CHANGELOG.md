@@ -7,6 +7,14 @@ Todo:
 
 Done:
 
+- plan engine:
+    - local intent files in `.azz/tasks/*.md`
+    - `azz plan init` — create the gitignored `.azz/` directory
+    - `azz plan fetch` — mirror remote items into local Markdown files
+    - `azz plan status` — read-only drift against the remote
+    - `azz plan resolve` — apply with per-change confirmation
+    - `item_id` write-back after creation
+    - `remote_changed_date` metadata to separate remote edits from local ones
 - interactive:
     - create item
         - more work item types

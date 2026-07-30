@@ -10,8 +10,12 @@ Two files to add to your project to give Claude access to `azz` commands:
 
 | Profile | Commands | Use case |
 |---|---|---|
-| `read-only` | list, show, timebox, list_timebox, branch | Claude can look things up, you stay in control of all writes |
+| `read-only` | list, show, timebox, list_timebox, branch, plan status | Claude can look things up, you stay in control of all writes |
 | `standard` | + create, state, close, resolve, attach, set_timebox | Claude can manage tasks; destructive ops (delete, edit) still blocked |
+
+Both profiles let Claude run `azz plan status` and write intent files in
+`.azz/tasks/` — planning is local and risk-free. `azz plan resolve` is the
+only plan command that touches the remote and is never allow-listed.
 
 ## Setup
 
@@ -33,8 +37,8 @@ block manually instead of overwriting.
 - Commands listed under `allow` run silently without a confirmation prompt.
 - Commands **not** listed require your approval each time — Claude will show
   you what it wants to run.
-- `delete` and `edit` are never in the allow list by design; they will always
-  require explicit approval.
+- `delete`, `edit`, and `plan resolve` are never in the allow list by design;
+  they will always require explicit approval.
 
 ## Prerequisites
 
