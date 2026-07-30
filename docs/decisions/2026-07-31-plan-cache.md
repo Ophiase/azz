@@ -1,7 +1,8 @@
 # Plan Cache — a local copy of the remote, like git
 
 **Date:** 2026-07-31
-**Status:** Proposed
+**Status:** Accepted — being implemented. See the addendum for what changed
+between proposing this and starting it.
 **Supersedes part of:**
 [2026-07-24-plan-engine.md](./2026-07-24-plan-engine.md) — specifically its
 rejection of a local state cache, and the `remote_changed_date` workaround
@@ -266,3 +267,87 @@ provides the merge base that turns a guess into a decision, and it makes
 Do not build phases 5 and 6 before phase 3 is in use for a while. The TUI
 work is the visible, appealing part and the easiest to get wrong before the
 underlying model has been lived with.
+
+---
+
+## Addendum — what the cache is actually for
+
+Written a few hours after the above, once the motivation was clearer. Three
+corrections, one of which weakens the case and two of which strengthen it.
+
+### The TUI was the point, and it needs less than this document assumed
+
+The body treats offline `status` as the headline benefit. It is not. The
+reason to build this is that `azz interactive` should show which items exist
+as local intent files and which of them diverge — so that when Claude edits
+`.azz/tasks/`, the user watches it happen in their own tool.
+
+That needs less than a cache. The TUI already holds the remote items it just
+listed, so *tracked vs untracked* and *in sync vs differs* cost nothing extra.
+This is now `plan/tracking.py`, which answers the question with one directory
+scan and no network, and degrades to the two-way answer when there is no
+cache entry. Phase 5 therefore does **not** depend on phases 2–4.
+
+The merge base earns its keep only for the finer distinction — telling *local
+ahead* from *remote ahead* from *both changed*.
+
+### A reconcile panel would substitute for the merge base
+
+The planned follow-on is an interactive panel for reconciling a divergent
+item. That further narrows what the cache is for: if a human is resolving
+field by field, **they are the merge resolution**. A merge base is what you
+need to decide *automatically* whether something is a fast-forward or a
+conflict.
+
+So the cache's remaining unique value is narrower than the body claims:
+offline `status`, and correctness when no human is watching — agent-driven
+pushes, scripts, CI.
+
+That is still worth building. It is not the dramatic win the body implies.
+
+### The cache is a second backend, which pays for demo mode
+
+The strongest argument turned out to be one this document did not make.
+
+Every work item on the user's real board is confidential, so `azz interactive`
+cannot be screenshotted or recorded. A demo mode needs a believable fake
+board and no network — which is exactly a cache with fixture data in it.
+
+That reframes the work. Rather than the cache being a plan-engine feature, it
+becomes the second implementation of a `WorkItemBackend` protocol that
+`Engine` already satisfies structurally:
+
+```text
+CLI / TUI / plan engine
+        │
+        ▼
+  WorkItemBackend  ──────┬──────────────┐
+                         │              │
+                    Engine (az)   CacheBackend (.azz/cache)
+                                         │
+                                  ┌──────┴──────┐
+                              offline mode   demo mode
+```
+
+The 2026-07-24 record deferred that protocol on YAGNI grounds — correctly,
+because at the time there was one backend and no second data point. There
+are now two, so extracting it is a refactor with evidence behind it rather
+than a guess. Its correctness was checked statically: `Engine` satisfies
+`WorkItemBackend` with no changes to `Engine`.
+
+The default path is unchanged and stays fast: open `azz interactive`, it hits
+the remote, renames write to the remote. The cache is opt-in.
+
+### Consequence for the phasing
+
+Phase 5 (TUI glyphs) is independent of 2–4 and can ship first. Demo mode is
+a new phase that depends only on the backend protocol and `CacheStore`, not
+on the three-way `status`. The phases in the body remain correct for the plan
+engine itself; they are simply no longer the critical path.
+
+Longer term, the reason to care about any of this is the one the user names
+plainly: the better the local model, the more of this tool stops being about
+Azure DevOps at all. `WorkItemBackend` is where a GitHub Projects or Jira
+implementation would attach, and every piece of logic that moves from
+`Engine` into the plan engine or the cache is a piece that would not need
+rewriting.
