@@ -43,12 +43,13 @@ def render_change(change: Change) -> str:
 
 def render_fetch_outcome(outcome: FetchOutcome) -> str:
     status = outcome.status
+    work_item = outcome.work_item
     label = escape(f"[{status.label}]".ljust(LABEL_WIDTH))
     reason = f" [yellow]({escape(outcome.reason)})[/yellow]" if outcome.reason else ""
     return (
         f"[{status.style}]{label}[/{status.style}] "
-        f"{escape(display_path(outcome.path))} "
-        f"[grey50]#{outcome.work_item.id}[/grey50]{reason}"
+        f"[grey50]#{work_item.id}[/grey50] "
+        f"{escape(work_item.name)}{reason}"
     )
 
 

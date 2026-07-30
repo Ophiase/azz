@@ -13,9 +13,15 @@ from azz.plan import (
     Applier,
     Change,
     Changeset,
+    FetchClock,
     Fetcher,
     IntentFileError,
     LocalItem,
+    Puller,
+    PullOutcome,
+    SyncInspector,
+    SyncReport,
+    cache_directory,
     compute_changeset,
     find_plan_root,
     initialize_plan_directory,
@@ -35,6 +41,14 @@ from azz.plan.renderer import (
     render_prune_prompt,
     render_prune_summary,
     render_summary,
+)
+from azz.plan.sync_renderer import (
+    render_cache_age,
+    render_pull_outcome,
+    render_pull_summary,
+    render_sync_notices,
+    render_sync_report,
+    render_sync_summary,
 )
 
 ALL_STATES = frozenset({
@@ -70,9 +84,11 @@ def register(app: typer.Typer, engine: Engine) -> None:
         ),
         include_closed: bool = typer.Option(False, "--all", "-a"),
         current_timebox_only: bool = typer.Option(False, "--current-timebox", "-c"),
-        force: bool = typer.Option(False, "--force", "-f"),
     ) -> None:
-        """Mirror remote work items into .azz/tasks as Markdown intent files.
+        """Record remote work items in .azz/cache. Does not touch .azz/tasks.
+
+        Like `git fetch`: it updates our knowledge of the remote and leaves the
+        working tree alone. Run `azz plan pull` to write the files.
 
         `--limit 0` lifts the cap: combined with `--all`, it archives every
         work item `azz list -a` reports, Closed ones included.
@@ -85,17 +101,41 @@ def register(app: typer.Typer, engine: Engine) -> None:
             print("[yellow]No work items matched[/yellow]")
             return
 
-        fetcher = Fetcher(plan_root, _load_local_items(plan_root))
-        outcomes = tuple(fetcher.fetch(item, force=force) for item in remote_items)
+        fetcher = Fetcher(plan_root)
+        outcomes = tuple(fetcher.fetch(item) for item in remote_items)
         _cache_timeboxes(fetcher, engine)
         fetcher.record_fetch_time()
         for outcome in outcomes:
             print(render_fetch_outcome(outcome))
         print(render_fetch_summary(outcomes))
+        print("Write the files with [bold]azz plan pull[/bold]")
 
     def status() -> None:
-        """Show the drift between .azz/tasks and the remote (read-only)."""
-        _report(_load_changeset(engine))
+        """Compare .azz/tasks with .azz/cache. Offline: never calls the remote.
+
+        Three-way, so local edits, remote edits and genuine conflicts are told
+        apart. Run `azz plan fetch` to refresh what it compares against.
+        """
+        _report_sync(_load_sync_report())
+
+    def pull(
+        force: bool = typer.Option(
+            False, "--force", "-f", help="Overwrite local changes with the cache."
+        ),
+        dry_run: bool = typer.Option(False, "--dry-run"),
+    ) -> None:
+        """Write .azz/cache into .azz/tasks, fast-forward only. Offline.
+
+        Files whose local side is untouched are replaced by the fetched state.
+        Files where both sides moved are refused and listed — resolve them by
+        hand, or take the remote with `--force`.
+        """
+        plan_root = _require_plan_root()
+        report = _load_sync_report()
+        if dry_run:
+            _report_sync(report)
+            return
+        _pull(Puller(plan_root).pull(report, force=force))
 
     def push(
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
@@ -122,6 +162,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
 
     plan_app.command("init")(init)
     plan_app.command("fetch")(fetch)
+    plan_app.command("pull")(pull)
     plan_app.command("status")(status)
     plan_app.command("push")(push)
     plan_app.command("prune")(prune)
@@ -182,12 +223,40 @@ def _report(changeset: Changeset) -> None:
     print(render_summary(changeset))
 
 
+def _report_sync(report: SyncReport) -> None:
+    print(render_sync_report(report))
+    print(render_sync_summary(report))
+    notices = render_sync_notices(report)
+    if notices:
+        print(notices)
+
+
+def _pull(outcomes: Sequence[PullOutcome]) -> None:
+    for outcome in outcomes:
+        if not outcome.status.is_quiet:
+            print(render_pull_outcome(outcome))
+    print(render_pull_summary(outcomes))
+
+
+def _load_sync_report() -> SyncReport:
+    plan_root = _require_plan_root()
+    local_items = _load_local_items(plan_root)
+    report = SyncInspector(plan_root).inspect(local_items)
+    if not local_items and not report.incoming:
+        print(f"[yellow]No intent files in {tasks_directory(plan_root)}[/yellow]")
+        print("Record the remote with [bold]azz plan fetch[/bold]")
+        raise typer.Exit()
+    clock = FetchClock(cache_directory(plan_root))
+    print(render_cache_age(clock.age, clock.is_stale))
+    return report
+
+
 def _load_changeset(engine: Engine) -> Changeset:
     plan_root = _require_plan_root()
     paths = intent_file_paths(plan_root)
     if not paths:
         print(f"[yellow]No intent files in {tasks_directory(plan_root)}[/yellow]")
-        print("Pull existing work items with [bold]azz plan fetch[/bold]")
+        print("Record the remote with [bold]azz plan fetch[/bold]")
         raise typer.Exit()
     return compute_changeset(_load_local_items(plan_root), engine)
 

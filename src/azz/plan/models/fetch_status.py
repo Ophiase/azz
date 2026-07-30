@@ -3,9 +3,11 @@ from typing import Final
 
 
 class FetchStatus(StrEnum):
+    """What a fetch did to one entry of the cache."""
+
     CREATED = "created"
     REFRESHED = "refreshed"
-    SKIPPED = "skipped"
+    UNCHANGED = "unchanged"
 
     @property
     def label(self) -> str:
@@ -18,12 +20,12 @@ class FetchStatus(StrEnum):
 
 FETCH_STATUS_LABELS: Final = {
     FetchStatus.CREATED: "NEW",
-    FetchStatus.REFRESHED: "SYNCED",
-    FetchStatus.SKIPPED: "KEPT",
+    FetchStatus.REFRESHED: "MOVED",
+    FetchStatus.UNCHANGED: "SAME",
 }
 
 FETCH_STATUS_COLORS: Final = {
     FetchStatus.CREATED: "green",
     FetchStatus.REFRESHED: "cyan",
-    FetchStatus.SKIPPED: "yellow",
+    FetchStatus.UNCHANGED: "grey50",
 }
