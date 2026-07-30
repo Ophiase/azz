@@ -1,0 +1,171 @@
+{
+  "owner": "Ada Kestrel",
+  "project": "TIDEPOOL",
+  "timeboxes": [
+    {
+      "number": 11,
+      "start_offset_days": -28,
+      "finish_offset_days": -15
+    },
+    {
+      "number": 12,
+      "start_offset_days": -7,
+      "finish_offset_days": 6
+    },
+    {
+      "number": 13,
+      "start_offset_days": 7,
+      "finish_offset_days": 20
+    }
+  ],
+  "items": [
+    {
+      "id": 4100,
+      "title": "[CORE] Streaming pipeline foundations",
+      "item_type": "Epic",
+      "state": "Active",
+      "changed_days_ago": 9,
+      "timebox_number": 12,
+      "description": "Umbrella epic for the 0.4 pipeline rewrite. Fictional data used for the azz demo board."
+    },
+    {
+      "id": 4101,
+      "title": "[STREAM] Backpressure-aware stream scheduler",
+      "item_type": "Feature",
+      "state": "Active",
+      "changed_days_ago": 6,
+      "timebox_number": 12,
+      "parent_id": 4100,
+      "description": "Scheduler slows producers instead of dropping records when a sink lags behind."
+    },
+    {
+      "id": 4102,
+      "title": "[STREAM] Better stream strategy for late events",
+      "item_type": "User Story",
+      "state": "Active",
+      "changed_days_ago": 4,
+      "timebox_number": 12,
+      "parent_id": 4101,
+      "description": "As an operator I want late events folded into the right window instead of silently dropped."
+    },
+    {
+      "id": 4103,
+      "title": "[STREAM] Buffer late events in the window operator",
+      "item_type": "Task",
+      "state": "New",
+      "changed_days_ago": 2,
+      "timebox_number": 12,
+      "parent_id": 4102
+    },
+    {
+      "id": 4104,
+      "title": "[STREAM] Emit watermark lag metrics",
+      "item_type": "Task",
+      "state": "Active",
+      "changed_days_ago": 1,
+      "timebox_number": 12,
+      "parent_id": 4102
+    },
+    {
+      "id": 4105,
+      "title": "[PARSER] Nested JSON arrays lose their last element",
+      "item_type": "Bug",
+      "state": "Active",
+      "changed_days_ago": 0.5,
+      "timebox_number": 12,
+      "description": "Reproduced with a three-level array. The tail element is consumed by the closing-bracket lookahead."
+    },
+    {
+      "id": 4106,
+      "title": "[CLI] Run command ignores --config on Windows paths",
+      "item_type": "Bug",
+      "state": "New",
+      "changed_days_ago": 3,
+      "timebox_number": 12
+    },
+    {
+      "id": 4107,
+      "title": "[DOCS] Rewrite the quickstart around the new CLI",
+      "item_type": "Task",
+      "state": "Resolved",
+      "changed_days_ago": 5,
+      "timebox_number": 12
+    },
+    {
+      "id": 4108,
+      "title": "[API] Expose pipeline metrics on the health endpoint",
+      "item_type": "User Story",
+      "state": "Active",
+      "changed_days_ago": 8,
+      "timebox_number": 13,
+      "description": "One endpoint, one JSON document, no extra scrape target to configure."
+    },
+    {
+      "id": 4109,
+      "title": "[INFRA] Pin the container base image by digest",
+      "item_type": "Task",
+      "state": "Closed",
+      "changed_days_ago": 17,
+      "timebox_number": 11
+    },
+    {
+      "id": 4110,
+      "title": "[RELEASE] Generate the changelog from commit trailers",
+      "item_type": "Task",
+      "state": "New",
+      "changed_days_ago": 12,
+      "timebox_number": 13
+    },
+    {
+      "id": 4111,
+      "title": "[WEB] Dashboard chart flickers on live reload",
+      "item_type": "Bug",
+      "state": "Resolved",
+      "changed_days_ago": 19,
+      "timebox_number": 11
+    },
+    {
+      "id": 4112,
+      "title": "[API] Pluggable sink registry",
+      "item_type": "Feature",
+      "state": "New",
+      "changed_days_ago": 11,
+      "timebox_number": 13,
+      "description": "Third-party sinks register through an entry point instead of a hardcoded table."
+    },
+    {
+      "id": 4113,
+      "title": "[CORE] Drop the deprecated flush shim",
+      "item_type": "Task",
+      "state": "Closed",
+      "changed_days_ago": 24,
+      "timebox_number": 11
+    },
+    {
+      "id": 4114,
+      "title": "[PARSER] Fuzz the CSV reader in CI",
+      "item_type": "Task",
+      "state": "Active",
+      "changed_days_ago": 7,
+      "timebox_number": 12,
+      "assignee": "Bram Vitel"
+    },
+    {
+      "id": 4115,
+      "title": "[DOCS] Publish the operator cookbook",
+      "item_type": "User Story",
+      "state": "New",
+      "changed_days_ago": 14,
+      "timebox_number": 13,
+      "assignee": "Noor Halvard"
+    },
+    {
+      "id": 4116,
+      "title": "[CLI] Add shell completion for the run subcommand",
+      "item_type": "Task",
+      "state": "Active",
+      "changed_days_ago": 1.5,
+      "timebox_number": 12
+    }
+  ]
+}
