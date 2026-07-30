@@ -97,20 +97,24 @@ want, delete the files you no longer need — a missing file never means
 "delete the work item".
 
 ```bash
-azz plan status           # read-only diff against the remote
+azz plan status           # offline: .azz/tasks vs .azz/cache
+azz plan pull             # write the cache into .azz/tasks, fast-forward only
 azz plan push             # apply, confirming each change
-azz plan push --dry-run   # same output as status
+azz plan push --dry-run   # show what would be applied
 azz plan push --yes       # apply without per-change confirmation
 ```
 
-Re-running `azz plan fetch` refreshes files whose remote moved since the last
-fetch, and keeps files you have edited locally — pass `--force` to overwrite
-those too.
+`fetch` and `pull` are separate, the way git separates them. `fetch` records
+what the remote said in `.azz/cache/` and never touches your files; `pull`
+writes that into `.azz/tasks/`, fast-forwarding only the files you have not
+edited and refusing the ones where both sides moved. That cached copy is the
+merge base, which is what lets `status` run fully offline and tell a remote
+edit apart from one of yours instead of guessing.
 
 Fetch options: `-l/--limit N` (default 20, `0` for no limit), `-a/--all` to
-include Closed items, `-c/--current-timebox`, `-f/--force`. `-a -l 0` pulls
-the same set as `azz list -a` — every work item assigned to you in the
-configured projects, whatever its state.
+include Closed items, `-c/--current-timebox`. `-a -l 0` pulls the same set as
+`azz list -a` — every work item assigned to you in the configured projects,
+whatever its state.
 
 Once the archive is on disk, prune it back to the work in flight:
 
@@ -131,20 +135,73 @@ explicit via `azz delete`.
 See [the design decision](docs/decisions/2026-07-24-plan-engine.md) for the
 rationale.
 
-### Claude integration
+### Setting up Claude in your project
 
-From the project you want Claude to work on:
+Run this from the repository you want Claude to work on — not from the azz
+checkout:
 
 ```bash
+cd ~/my-project
+azz plan init                 # create the gitignored .azz/ directory
 azz claude install            # planning profile (default)
-azz claude install standard
+azz claude install standard   # or: also allow the imperative write commands
 azz claude list               # what each profile grants
 ```
 
-This appends the command docs to `CLAUDE.md` and merges the matching
-permissions into `.claude/settings.json`, preserving anything already there.
-The `planning` profile lets Claude author intent files but denies every
-command that writes to Azure DevOps — you apply its plans with
-`azz plan push`.
+`azz claude install` writes two things:
+
+- the command docs into `CLAUDE.md`, so Claude knows the commands exist
+- the matching permissions into `.claude/settings.json`, so the harness
+  enforces what it may run
+
+Use `--target <dir>` to install somewhere other than the current directory.
+
+**It is idempotent — re-run it whenever you like.** The docs go between
+`<!-- azz:begin -->` and `<!-- azz:end -->` markers, so re-installing replaces
+that block and leaves the rest of your `CLAUDE.md` untouched. In
+`settings.json`, only rules starting with `Bash(azz` are replaced; your other
+permissions, `env`, and hooks are preserved. Because the old `azz` rules are
+dropped before the new ones are written, switching profiles leaves nothing
+stale behind — that is the upgrade path too: install again after updating azz.
+
+| Profile | Claude can | Claude cannot |
+|---|---|---|
+| `planning` | read the remote, author intent files in `.azz/tasks/` | change Azure DevOps at all — every write command is denied |
+| `standard` | the above, plus `create`, `state`, `close`, `attach`, `set_timebox` behind a prompt | `edit`, `delete`, `plan push` |
+
+`planning` is the default and is less restrictive than it sounds: Claude can
+plan a whole batch of work as Markdown, you review it like a git diff and
+apply it yourself. `azz plan push` is never allow-listed in either profile —
+it confirms each change on a TTY, so an agent cannot usefully run it, and the
+only way to change that would be `--yes`, which removes the review step the
+plan engine exists to provide.
 
 See [docs/claude.md](docs/claude.md) for details.
+
+### Demo mode
+
+Every work item on a real board tends to be confidential, which makes it
+awkward to screenshot or record the tool. Demo mode runs everything against a
+bundled fictional board instead:
+
+```bash
+azz --demo interactive        # the TUI, on fake data
+azz --demo list
+AZZ_DEMO=1 azz list           # same, via the environment
+```
+
+**It needs no Azure DevOps account and no environment variables at all** — it
+never reads your config and never touches the network, so it works on a fresh
+machine immediately after installing.
+
+Notes:
+
+- `--demo` must come *before* the subcommand: `azz --demo list`, not
+  `azz list --demo`.
+- Changes are discarded on exit, so every recording starts from the same
+  state. Set `AZZ_DEMO_DIR=<path>` to keep them instead.
+- The TUI subtitle says `DEMO DATA` so a recording can never be mistaken for
+  a real board.
+
+Demo mode is the cache backend with fixture data in it — the same machinery
+that makes `azz plan status` work offline.

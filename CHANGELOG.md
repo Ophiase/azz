@@ -4,8 +4,28 @@
 
 - proper shortcuts
 - pr management
+- `local_id` so a new work item can parent another new one — decided in
+  `docs/decisions/2026-07-31-local-ids.md`, not implemented
+- TUI local-edit mode: edit `.azz/tasks` instead of the remote
+  (phase 6 of `docs/decisions/2026-07-31-plan-cache.md`)
+- an interactive panel to reconcile a divergent item
+- widen `register(app, engine: Engine)` to `WorkItemBackend` and drop the
+  `cast` in `app.py`
 
 ## v0.1
+
+- **v0.1.1 — 2026-07-31**
+    - `azz plan fetch` now records the remote in `.azz/cache` and leaves
+      `.azz/tasks` alone; `azz plan pull` writes the working tree
+    - `azz plan status` is offline and three-way — it tells a remote edit
+      apart from a local one instead of guessing
+    - `azz interactive` shows a plan gutter: `●` in sync, `◆` local changes,
+      `▼` remote moved, `✗` both changed; `P` refreshes, `?` explains
+    - demo mode — `azz --demo` or `AZZ_DEMO=1`, a fictional board needing no
+      Azure DevOps credentials
+    - `azz claude install` is idempotent and safe to re-run
+    - retire the `remote_changed_date` frontmatter key
+    - fix `StateFilter`, which silently matched nothing for a single state
 
 - **v0.1.0**
     - plan engine:
