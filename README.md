@@ -67,6 +67,7 @@ diff it against Azure DevOps, apply it with confirmation.
 azz plan init                # create the gitignored .azz/ directory
 azz plan fetch               # mirror your 20 most recent items into .azz/tasks
 azz plan fetch 7651 7695     # or just these ones
+azz plan fetch -a -l 0       # everything, Closed included — a full local archive
 ```
 
 One Markdown file per work item under `.azz/tasks/`:
@@ -106,11 +107,26 @@ Re-running `azz plan fetch` refreshes files whose remote moved since the last
 fetch, and keeps files you have edited locally — pass `--force` to overwrite
 those too.
 
-Fetch options: `-l/--limit N` (default 20), `-a/--all` to include Closed
-items, `-c/--current-timebox`, `-f/--force`.
+Fetch options: `-l/--limit N` (default 20, `0` for no limit), `-a/--all` to
+include Closed items, `-c/--current-timebox`, `-f/--force`. `-a -l 0` pulls
+the same set as `azz list -a` — every work item assigned to you in the
+configured projects, whatever its state.
+
+Once the archive is on disk, prune it back to the work in flight:
+
+```bash
+azz plan prune --dry-run   # list what would go
+azz plan prune             # delete, after one confirmation
+azz plan prune --yes       # delete without confirming
+```
+
+`prune` removes a file only when the work item is Closed on the remote *and*
+the file is in sync with it. Local drift, files with no `item_id`, and files
+whose item is gone from the remote are always kept.
 
 `.azz/` is gitignored by default. A missing file never means "delete" —
-deletion stays explicit via `azz delete`.
+`prune` only ever touches local files, and deletion on Azure DevOps stays
+explicit via `azz delete`.
 
 See [the design decision](docs/decisions/2026-07-24-plan-engine.md) for the
 rationale.

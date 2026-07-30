@@ -72,18 +72,40 @@ copied to clipboard. Read-only — does not create a branch.
 azz plan init                    # create the gitignored .azz/ directory
 azz plan fetch [<ID> ...]        # mirror remote items into .azz/tasks/*.md
 azz plan status                  # drift between .azz/tasks and the remote
+azz plan prune --dry-run         # list the local files safe to delete
 ```
 
-`fetch` options: `-l N` / `--limit N` (default 20, most recently changed),
-`-a` / `--all` to include Closed items, `-c` / `--current-timebox`.
-`-f` / `--force` overwrites locally edited files — ask the user first.
+`fetch` options: `-l N` / `--limit N` (default 20, most recently changed;
+`-l 0` means no limit), `-a` / `--all` to include Closed items,
+`-c` / `--current-timebox`. `-f` / `--force` overwrites locally edited
+files — ask the user first.
+
+`azz plan fetch -a -l 0` archives every work item `azz list -a` reports,
+Closed ones included. That is the backup command; it can write a lot of
+files, so only run it when the user asks for a full archive.
 
 `status` prints one line per file — `[NEW]`, `[DRIFT]`, `[NOOP]`, or
 `[GONE]`. A `⚠ remote changed since the last fetch` line means someone edited
 the item on Azure DevOps since it was fetched; suggest `azz plan fetch` to
 take the remote version.
 
-All three commands are read-only with respect to Azure DevOps.
+All of these are read-only with respect to Azure DevOps.
+
+### Prune closed, in-sync files
+
+```text
+azz plan prune --dry-run   # pre-approved: lists candidates, deletes nothing
+azz plan prune             # deletes — needs the user's approval every time
+azz plan prune --yes       # same, without the per-run confirmation
+```
+
+Deletes local files only, and only when the item is Closed on the remote
+*and* the file has no drift (`[NOOP]`). Files with drift, files without an
+`item_id`, and `[GONE]` files are always kept. Deleting a file never deletes
+the work item — re-fetch to get it back.
+
+Only `--dry-run` is pre-approved. Run it, show the user the list, and let
+them decide.
 
 ### Intent files
 
@@ -113,7 +135,7 @@ Rules:
   A file containing only `title` will only ever touch the title.
 - `remote_changed_date` is managed by `azz`. Never write or edit it by hand.
 - Only keep locally the items being worked on. Deleting a file never deletes
-  the work item.
+  the work item — `azz plan prune` does exactly that, in bulk and safely.
 
 ### Workflow
 

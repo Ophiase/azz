@@ -134,13 +134,17 @@ azz plan fetch [OPTIONS]         # mirror remote items into .azz/tasks/*.md
 azz plan fetch <ID> [<ID> ...]   # only these items
 ```
 
-Fetch options: `-l N` / `--limit N` (default 20, most recently changed),
-`-a` / `--all` to include Closed items, `-c` / `--current-timebox`,
-`-f` / `--force`.
+Fetch options: `-l N` / `--limit N` (default 20, most recently changed;
+`-l 0` means no limit), `-a` / `--all` to include Closed items,
+`-c` / `--current-timebox`, `-f` / `--force`.
 
 Re-running `fetch` refreshes files whose remote moved since the last fetch
 and keeps files that were edited locally. `--force` overwrites local edits —
 ask the user before using it.
+
+`azz plan fetch -a -l 0` mirrors every work item `azz list -a` reports,
+Closed ones included — the full local archive. It can write a lot of files,
+so only run it when the user asks for a backup.
 
 Only keep locally the items being worked on. Deleting a file never deletes
 the work item.
@@ -208,6 +212,25 @@ rollback, so a partial apply is normal and visible in `azz plan status`.
 Changing `type` on an existing item is not supported and is skipped with a
 notice; delete and recreate instead.
 
+### Prune closed, in-sync files — confirm before running
+
+```text
+azz plan prune [OPTIONS]
+```
+
+Options:
+
+- `--dry-run` — list the candidates, delete nothing (pre-approved)
+- `-y` / `--yes` — skip the confirmation
+
+Deletes local files only, and only when the work item is Closed on the
+remote *and* the file has no drift (`[NOOP]`). Files with drift, files
+without an `item_id`, and `[GONE]` files are always kept. The Azure DevOps
+work items are never touched — re-fetch to bring a file back.
+
+Only `--dry-run` is in the allow list. Run it first, show the user the list,
+and let them run the real thing.
+
 ### Recommended workflow
 
 1. Write or edit files in `.azz/tasks/`.
@@ -223,5 +246,6 @@ notice; delete and recreate instead.
 - `azz edit` — opens an editor to modify title/description; too interactive
 - `azz delete` — permanent, irreversible
 - `azz plan push` — the only plan command that writes to the remote
+- `azz plan prune` (without `--dry-run`) — deletes local files
 
 Never run these without a direct, explicit instruction from the user.

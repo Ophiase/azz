@@ -13,6 +13,9 @@ Done:
     - `azz plan fetch` — mirror remote items into local Markdown files
     - `azz plan status` — read-only drift against the remote
     - `azz plan push` — apply with per-change confirmation
+    - `azz plan prune` — delete the local files of Closed, in-sync items
+      (`--dry-run`, `--yes`; never touches the remote)
+    - `azz plan fetch --limit 0` — no cap, so `-a -l 0` archives everything
     - `item_id` write-back after creation
     - `remote_changed_date` metadata to separate remote edits from local ones
 - claude integration:
