@@ -11,6 +11,10 @@ from .errors import IntentFileError
 from .frontmatter import Frontmatter
 from .models import LocalItem
 
+RETIRED_FIELDS: Final = frozenset({"remote_changed_date"})
+"""Accepted and ignored for one release. `.azz/cache/` replaced them: the merge
+base makes a tool-managed timestamp in a human-readable file unnecessary."""
+
 KNOWN_FIELDS: Final = frozenset({
     "item_id",
     "title",
@@ -18,7 +22,7 @@ KNOWN_FIELDS: Final = frozenset({
     "type",
     "parent",
     "iteration",
-    "remote_changed_date",
+    *RETIRED_FIELDS,
 })
 
 
@@ -47,7 +51,6 @@ def _build_local_item(path: Path, frontmatter: Frontmatter) -> LocalItem:
             parent=metadata.get("parent"),
             iteration=_optional_text(metadata.get("iteration")),
             description=frontmatter.body or None,
-            remote_changed_date=metadata.get("remote_changed_date"),
         )
     except (ValidationError, ValueError) as error:
         raise IntentFileError(path, str(error)) from error

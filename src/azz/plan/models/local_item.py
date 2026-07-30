@@ -1,4 +1,3 @@
-from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -13,7 +12,9 @@ class LocalItem(BaseModel):
     A single `.azz/tasks/*.md` intent file.
 
     A field left at `None` is absent from the frontmatter: it is never
-    compared against the remote and never written to it.
+    compared against the remote and never written to it. Every field here is
+    the human's to edit — the merge base in `.azz/cache/` carries the
+    tool-managed state.
     """
 
     path: Path
@@ -24,9 +25,6 @@ class LocalItem(BaseModel):
     parent: int | None = None
     iteration: str | None = None
     description: Markdown | None = None
-    remote_changed_date: datetime | None = None
-    """Tool-managed: when the remote item last changed, as of the last fetch
-    or resolve. Never compared as a field — it detects concurrent edits."""
 
     @property
     def is_new(self) -> bool:

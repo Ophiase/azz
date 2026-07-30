@@ -19,6 +19,7 @@ from azz.plan import (
     LocalItem,
     Puller,
     PullOutcome,
+    Snapshots,
     SyncInspector,
     SyncReport,
     cache_directory,
@@ -141,12 +142,17 @@ def register(app: typer.Typer, engine: Engine) -> None:
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
         dry_run: bool = typer.Option(False, "--dry-run"),
     ) -> None:
-        """Apply local intents to the remote, confirming each change."""
+        """Apply local intents to the remote, confirming each change.
+
+        Every applied change advances the merge base, so `azz plan status`
+        reports the file as in sync afterwards without another fetch.
+        """
+        plan_root = _require_plan_root()
         changeset = _load_changeset(engine)
         if dry_run:
             _report(changeset)
             return
-        _apply(changeset, engine, assume_yes)
+        _apply(changeset, engine, Snapshots.for_plan(plan_root), assume_yes)
 
     def prune(
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
@@ -258,16 +264,23 @@ def _load_changeset(engine: Engine) -> Changeset:
         print(f"[yellow]No intent files in {tasks_directory(plan_root)}[/yellow]")
         print("Record the remote with [bold]azz plan fetch[/bold]")
         raise typer.Exit()
-    return compute_changeset(_load_local_items(plan_root), engine)
+    return compute_changeset(
+        _load_local_items(plan_root), engine, Snapshots.for_plan(plan_root)
+    )
 
 
-def _apply(changeset: Changeset, engine: Engine, assume_yes: bool) -> None:
+def _apply(
+    changeset: Changeset,
+    engine: Engine,
+    snapshots: Snapshots,
+    assume_yes: bool,
+) -> None:
     applicable = changeset.applicable
     if not applicable:
         print("[green]Nothing to resolve[/green]")
         return
 
-    applier = Applier(engine)
+    applier = Applier(engine, snapshots)
     for change in applicable:
         if not assume_yes and not typer.confirm(render_prompt(change)):
             print("  [grey50]skipped[/grey50]")

@@ -1,6 +1,5 @@
 from dataclasses import replace
 from logging import getLogger
-from pathlib import Path
 
 from azz.core.engine import Engine
 from azz.core.timebox import Iteration
@@ -9,6 +8,7 @@ from azz.core.work_item.work_item_type import WorkItemType
 
 from .comparison import UPDATABLE_FIELDS
 from .models import ApplyOutcome, Change, ChangeType, LocalItem
+from .snapshots import Snapshots
 from .writer import write_back
 
 logger = getLogger(__name__)
@@ -17,8 +17,9 @@ logger = getLogger(__name__)
 class Applier:
     """Pushes a single `Change` to the remote. Never rolls back."""
 
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: Engine, snapshots: Snapshots | None = None) -> None:
         self._engine = engine
+        self._snapshots = snapshots
 
     def apply(self, change: Change) -> ApplyOutcome:
         try:
@@ -40,7 +41,7 @@ class Applier:
         )
         self._push_optional_fields(created.id, local_item)
         write_back(local_item.path, created.id, title=created.name)
-        self._record_remote_timestamp(local_item.path, created.id)
+        self._record_snapshot(created.id)
         return ApplyOutcome(change, f"created #{created.id}", succeeded=True)
 
     def _update(self, change: Change) -> ApplyOutcome:
@@ -54,19 +55,26 @@ class Applier:
         if changed & {"title", "description"}:
             self._push_content(remote_item, local_item, changed)
         self._push_optional_fields(work_item_id, local_item, only=changed)
-        self._record_remote_timestamp(local_item.path, work_item_id)
+        self._record_snapshot(work_item_id)
         return ApplyOutcome(
             change, _update_message(work_item_id, changed), succeeded=True
         )
 
-    def _record_remote_timestamp(self, path: Path, work_item_id: int) -> None:
-        """Best effort — the change is already applied, so a failure here must
-        not turn a successful push into a reported error."""
+    def _record_snapshot(self, work_item_id: int) -> None:
+        """
+        Advance the merge base: the file now agrees with the remote.
+
+        Re-fetched rather than taken from the response, because the server
+        mutates what it stores — the project-name prefix, for one. Best effort:
+        the change is already applied, so a failure here must not turn a
+        successful push into a reported error.
+        """
+        if self._snapshots is None:
+            return
         try:
-            refreshed = self._engine.get_workitem(work_item_id)
-            write_back(path, remote_changed_date=refreshed.changed_date)
+            self._snapshots.record_synced(self._engine.get_workitem(work_item_id))
         except (RuntimeError, OSError) as error:
-            logger.debug("could not record remote timestamp for %s: %s", path, error)
+            logger.debug("could not cache #%s after push: %s", work_item_id, error)
 
     def _push_content(
         self, remote_item: WorkItem, local_item: LocalItem, changed: frozenset[str]

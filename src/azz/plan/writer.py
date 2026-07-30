@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from datetime import datetime
 from pathlib import Path
 
 from .errors import IntentFileError
@@ -10,7 +9,6 @@ def write_back(
     path: Path,
     item_id: int | None = None,
     title: str | None = None,
-    remote_changed_date: datetime | None = None,
 ) -> None:
     """
     Make the intent file canonical after a remote operation.
@@ -21,19 +19,11 @@ def write_back(
     lines = path.read_text().splitlines()
     closing_index = _closing_delimiter_index(path, lines)
     block = lines[1:closing_index]
-    for key, value in (
-        ("item_id", item_id),
-        ("title", title),
-        ("remote_changed_date", _timestamp(remote_changed_date)),
-    ):
+    for key, value in (("item_id", item_id), ("title", title)):
         if value is not None:
             block = _upsert(block, key, quote_scalar(str(value)))
     updated = [lines[0], *block, *lines[closing_index:]]
     path.write_text("\n".join(updated) + "\n")
-
-
-def _timestamp(moment: datetime | None) -> str | None:
-    return moment.isoformat() if moment is not None else None
 
 
 def _closing_delimiter_index(path: Path, lines: Sequence[str]) -> int:

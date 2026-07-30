@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from azz.core.work_item import WorkItem
 from azz.core.work_item.helper import html_to_markdown
 
@@ -24,14 +22,9 @@ def _frontmatter_lines(work_item: WorkItem) -> list[str]:
         ("state", work_item.state),
         ("parent", work_item.parent_id),
         ("iteration", iteration_name(work_item)),
-        ("remote_changed_date", _timestamp(work_item.changed_date)),
     )
     return [
         f"{key}: {quote_scalar(str(value))}"
         for key, value in entries
         if value is not None
     ]
-
-
-def _timestamp(moment: datetime | None) -> str | None:
-    return moment.isoformat() if moment is not None else None

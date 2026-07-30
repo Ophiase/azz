@@ -67,12 +67,7 @@ class CacheBackend:
         project_filter: bool = True,  # noqa: ARG002 - see class docstring
         current_timebox_only: bool = False,
     ) -> tuple[WorkItem, ...]:
-        # StateFilter annotates its states as WorkItem where it means
-        # WorkItemState; it compares against WorkItemState at runtime.
-        state_filter = StateFilter(
-            tuple(states or DEFAULT_STATES)  # ty: ignore[invalid-argument-type]
-        )
-        filters: list[WorkItemFilter] = [state_filter]
+        filters: list[WorkItemFilter] = [StateFilter(tuple(states or DEFAULT_STATES))]
         if not show_others:
             filters.append(AssigneeFilter(self._resolve_owner(assigned_to)))
         if current_timebox_only:

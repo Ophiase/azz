@@ -7,10 +7,12 @@ from azz.cache import CacheStore
 from azz.core.work_item import WorkItem
 
 from .comparison import field_diffs
-from .discovery import cache_directory, intent_file_paths
+from .discovery import intent_file_paths
 from .errors import IntentFileError
 from .models import LocalItem
 from .parser import parse_intent_files
+from .snapshot_diff import remote_advanced
+from .snapshots import Snapshots
 
 
 class TrackingStatus(StrEnum):
@@ -79,9 +81,9 @@ def tracking_statuses(
     local_by_id = _local_items_by_id(plan_root)
     if not local_by_id:
         return {}
-    store = CacheStore(cache_directory(plan_root))
+    base = Snapshots.for_plan(plan_root).base
     return {
-        item.id: _classify(local_by_id[item.id], item, store)
+        item.id: _classify(local_by_id[item.id], item, base)
         for item in remote_items
         if item.id in local_by_id
     }
@@ -96,15 +98,15 @@ def _local_items_by_id(plan_root: Path) -> dict[int, LocalItem]:
 
 
 def _classify(
-    local_item: LocalItem, remote_item: WorkItem, store: CacheStore
+    local_item: LocalItem, remote_item: WorkItem, base: CacheStore
 ) -> TrackingStatus:
-    local_moved = bool(field_diffs(local_item, remote_item))
-    cached = store.read_item(remote_item.id)
+    cached = base.read_item(remote_item.id)
     if cached is None:
+        local_moved = bool(field_diffs(local_item, remote_item))
         return TrackingStatus.LOCAL_AHEAD if local_moved else TrackingStatus.IN_SYNC
 
     local_moved = bool(field_diffs(local_item, cached))
-    remote_moved = _remote_moved_since_cache(remote_item, cached)
+    remote_moved = remote_advanced(cached, remote_item)
     if local_moved and remote_moved:
         return TrackingStatus.CONFLICT
     if local_moved:
@@ -112,9 +114,3 @@ def _classify(
     if remote_moved:
         return TrackingStatus.REMOTE_AHEAD
     return TrackingStatus.IN_SYNC
-
-
-def _remote_moved_since_cache(remote_item: WorkItem, cached: WorkItem) -> bool:
-    if remote_item.changed_date is None or cached.changed_date is None:
-        return False
-    return remote_item.changed_date > cached.changed_date

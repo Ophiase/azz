@@ -4,6 +4,7 @@ from typing import Protocol, Self
 from azz.core.iteration_path import IterationPath
 
 from .work_item import WorkItem
+from .work_item_state import WorkItemState
 
 
 class WorkItemFilter(Protocol):
@@ -32,8 +33,8 @@ class ProjectNameFilter(WorkItemFilter):
 
 
 class StateFilter(WorkItemFilter):
-    def __init__(self, states: WorkItem | tuple[WorkItem, ...]):
-        if isinstance(states, WorkItem):
+    def __init__(self, states: WorkItemState | tuple[WorkItemState, ...]):
+        if isinstance(states, WorkItemState):
             states = (states,)
         self.states = states
 
