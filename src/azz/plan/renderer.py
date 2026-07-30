@@ -18,6 +18,8 @@ from .models import (
 LABEL_WIDTH = 8
 DIFF_INDENT = " " * (LABEL_WIDTH + 4)
 REMOTE_MOVED_NOTICE = "⚠ remote changed since the last fetch"
+PRUNE_LABEL = "PRUNE"
+PRUNE_STYLE = "red"
 
 
 def display_path(path: Path) -> str:
@@ -67,6 +69,27 @@ def render_summary(changeset: Changeset) -> str:
     return f"[bold]{counts}[/bold]"
 
 
+def render_prune_candidate(change: Change) -> str:
+    label = escape(f"[{PRUNE_LABEL}]".ljust(LABEL_WIDTH))
+    location = escape(display_path(change.local_item.path))
+    return (
+        f"[{PRUNE_STYLE}]{label}[/{PRUNE_STYLE}] "
+        f"{location}{_identifier(change)} "
+        f"[grey50]✓ closed and in sync — will delete the file[/grey50]"
+    )
+
+
+def render_prune_summary(candidates: Sequence[Change]) -> str:
+    return f"[bold]{_file_count(candidates)} to delete[/bold]"
+
+
+def render_prune_prompt(candidates: Sequence[Change]) -> str:
+    return (
+        f"Delete {_file_count(candidates)}? "
+        "The Azure DevOps work items are left untouched."
+    )
+
+
 def render_prompt(change: Change) -> str:
     local_item = change.local_item
     location = display_path(local_item.path)
@@ -87,6 +110,11 @@ def creation_target(local_item: LocalItem) -> str:
     item_type = local_item.item_type or WorkItemType.TASK
     parent = f" under #{local_item.parent}" if local_item.parent else ""
     return f"{item_type}{parent}"
+
+
+def _file_count(candidates: Sequence[Change]) -> str:
+    count = len(candidates)
+    return f"{count} local file{'' if count == 1 else 's'}"
 
 
 def _header(change: Change) -> str:

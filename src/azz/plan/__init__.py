@@ -15,6 +15,7 @@ from .models import (
     LocalItem,
 )
 from .parser import parse_intent_files
+from .pruner import prunable_changes, prune_intent_file
 
 __all__ = [
     "Applier",
@@ -34,5 +35,7 @@ __all__ = [
     "initialize_plan_directory",
     "intent_file_paths",
     "parse_intent_files",
+    "prunable_changes",
+    "prune_intent_file",
     "tasks_directory",
 ]
