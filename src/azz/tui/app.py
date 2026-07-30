@@ -18,15 +18,12 @@ from azz.core.work_item.work_item import WorkItem
 from azz.tui.create_screen import CreateScreen, NewTaskData
 from azz.tui.detail_screen import DetailScreen
 from azz.tui.filter_bar import FilterBar
+from azz.tui.plan_legend import PlanLegendScreen
+from azz.tui.plan_state import PlanState
 from azz.tui.rename_screen import RenameScreen
 from azz.tui.state_picker import StatePickerScreen
 from azz.tui.timebox_nav import adjacent_timebox
 from azz.tui.work_table import WorkItemTable
-
-# Must match WorkItemTable._build_columns column insertion order (after marker).
-_SORTABLE_COLUMNS: Final[tuple[str, ...]] = (
-    "date", "id", "tb", "type", "state", "name"
-)
 
 _SORT_DEFAULT_REVERSE: Final[dict[str, bool]] = {
     "date": True,
@@ -79,6 +76,8 @@ class AzzTUI(App[None]):
         Binding("G", "cursor_bottom", "Bottom", show=False),
         Binding("escape", "escape_mode", "Esc", show=False),
         Binding("b", "show_branch", "Branch"),
+        Binding("P", "refresh_plan", "[P]Plan"),
+        Binding("question_mark", "plan_legend", "[?]Legend"),
         Binding("R", "reload", "Reload"),
         Binding("q", "quit", "Quit"),
     ]
@@ -99,6 +98,7 @@ class AzzTUI(App[None]):
         self._visual_anchor: int = 0
         self._committed_ids: frozenset[int] = frozenset()
         self._selected_ids: frozenset[int] = frozenset()
+        self._plan_state = PlanState()
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -120,7 +120,12 @@ class AzzTUI(App[None]):
                 show_others=self._show_others,
             ),
         )
+        await self._load_plan_state()
         self._apply_filters()
+
+    async def _load_plan_state(self) -> None:
+        """One directory scan per item-list load — never per row, never on a timer."""
+        self._plan_state = await asyncio.to_thread(PlanState.load, self._all_items)
 
     def _current_timebox_number(self) -> int | None:
         return next(
@@ -182,6 +187,7 @@ class AzzTUI(App[None]):
             selected_ids=self._selected_ids,
             sort_column=self._sort_column,
             sort_reverse=self._sort_reverse,
+            plan_state=self._plan_state,
         )
         self.query_one(FilterBar).update_filters(
             include_closed=self._include_closed,
@@ -269,18 +275,16 @@ class AzzTUI(App[None]):
 
     @on(DataTable.HeaderSelected)
     def on_header_selected(self, event: DataTable.HeaderSelected) -> None:
-        # column 0 is the marker; columns 1+ map to _SORTABLE_COLUMNS in order.
-        # Use column_index (reliable int) instead of str(column_key) which
-        # does not round-trip cleanly in all Textual versions.
-        idx = event.column_index - 1
-        if idx < 0 or idx >= len(_SORTABLE_COLUMNS):
+        # The table owns the index mapping, so its gutter columns cannot shift
+        # the sort keys out from under us.
+        column = WorkItemTable.sortable_column_key(event.column_index)
+        if column is None:
             return
-        col = _SORTABLE_COLUMNS[idx]
-        if col == self._sort_column:
+        if column == self._sort_column:
             self._sort_reverse = not self._sort_reverse
         else:
-            self._sort_column = col
-            self._sort_reverse = _SORT_DEFAULT_REVERSE.get(col, False)
+            self._sort_column = column
+            self._sort_reverse = _SORT_DEFAULT_REVERSE.get(column, False)
         self._apply_filters(preserve_cursor=True)
 
     @on(DataTable.RowSelected)
@@ -309,6 +313,21 @@ class AzzTUI(App[None]):
 
     def action_reload(self) -> None:
         self._fetch_items()
+
+    # --- Plan state (local `.azz` only — no network call) ---
+
+    @work
+    async def action_refresh_plan(self) -> None:
+        await self._load_plan_state()
+        self._refresh_view(preserve_cursor=True)
+        self.notify(
+            f"{self._plan_state.tracked_count} tracked",
+            title="Plan state",
+            timeout=1,
+        )
+
+    def action_plan_legend(self) -> None:
+        self.push_screen(PlanLegendScreen())
 
     # --- Item actions ---
 
