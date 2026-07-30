@@ -1,0 +1,61 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(just *)",
+      "Bash(just)",
+      "Bash(uv run ruff *)",
+      "Bash(uv run ty *)",
+      "Bash(uv sync*)",
+      "Bash(uv lock*)",
+      "Bash(uv tree*)",
+      "Bash(rumdl check*)",
+      "Bash(rumdl fmt*)",
+      "Bash(rg *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(tree *)",
+      "Bash(wc *)",
+      "Bash(file *)",
+      "Bash(jq *)",
+      "Bash(diff *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch)",
+      "Bash(git branch --list*)",
+      "Bash(git blame*)",
+      "Bash(git stash list*)",
+      "Bash(azz list*)",
+      "Bash(azz show *)",
+      "Bash(azz timebox*)",
+      "Bash(azz branch *)",
+      "Bash(azz plan init)",
+      "Bash(azz plan fetch*)",
+      "Bash(azz plan status)",
+      "Bash(azz plan prune --dry-run)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git commit*)",
+      "Bash(gh *)",
+      "Bash(uv publish*)",
+      "Bash(uv tool install*)",
+      "Bash(az *)",
+      "Bash(azz plan push*)",
+      "Bash(azz plan prune)",
+      "Bash(azz edit*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git commit --amend*)",
+      "Bash(git rebase*)",
+      "Bash(git reset --hard*)",
+      "Bash(azz delete*)",
+      "Read(./.env)",
+      "Read(./.envrc)"
+    ]
+  }
+}

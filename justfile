@@ -1,3 +1,5 @@
+mod agent 'agent.just'
+
 @run args:
     uv run azz {{ args }}
 
@@ -10,6 +12,14 @@
 
 @install-dev:
     uv tool install --editable .
+
+[group("dev")]
+@checks:
+    just agent::checks
+
+[group("dev")]
+@version:
+    just agent::version
 
 [group("dev")]
 @rumdl:
