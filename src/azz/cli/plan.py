@@ -87,6 +87,8 @@ def register(app: typer.Typer, engine: Engine) -> None:
 
         fetcher = Fetcher(plan_root, _load_local_items(plan_root))
         outcomes = tuple(fetcher.fetch(item, force=force) for item in remote_items)
+        _cache_timeboxes(fetcher, engine)
+        fetcher.record_fetch_time()
         for outcome in outcomes:
             print(render_fetch_outcome(outcome))
         print(render_fetch_summary(outcomes))
@@ -140,6 +142,14 @@ def _load_local_items(plan_root: Path) -> tuple[LocalItem, ...]:
     except IntentFileError as error:
         print(f"[red]{error}[/red]")
         raise typer.Exit(code=1) from error
+
+
+def _cache_timeboxes(fetcher: Fetcher, engine: Engine) -> None:
+    """Best effort — a plan fetch is about work items, not iterations."""
+    try:
+        fetcher.record_timeboxes(engine.list_timeboxes())
+    except (RuntimeError, OSError) as error:
+        print(f"[yellow]Could not cache the timebox list: {error}[/yellow]")
 
 
 def _select_remote_items(

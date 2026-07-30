@@ -2,11 +2,13 @@ from .applier import Applier
 from .diff import compute_changeset
 from .discovery import (
     cache_directory,
+    fetched_cache_directory,
     find_plan_root,
     intent_file_paths,
     tasks_directory,
 )
 from .errors import IntentFileError, PlanError
+from .fetch_clock import FetchClock
 from .fetcher import Fetcher
 from .initializer import initialize_plan_directory
 from .models import (
@@ -21,6 +23,7 @@ from .models import (
 )
 from .parser import parse_intent_files
 from .pruner import prunable_changes, prune_intent_file
+from .snapshots import Snapshots
 from .tracking import TrackingStatus, tracking_statuses
 
 __all__ = [
@@ -29,6 +32,7 @@ __all__ = [
     "Change",
     "ChangeType",
     "Changeset",
+    "FetchClock",
     "FetchOutcome",
     "FetchStatus",
     "Fetcher",
@@ -36,9 +40,11 @@ __all__ = [
     "IntentFileError",
     "LocalItem",
     "PlanError",
+    "Snapshots",
     "TrackingStatus",
     "cache_directory",
     "compute_changeset",
+    "fetched_cache_directory",
     "find_plan_root",
     "initialize_plan_directory",
     "intent_file_paths",
