@@ -25,9 +25,25 @@ class AzzApp:
             configure_logging(verbose)
 
     def _register_commands(self) -> None:
-        from azz.cli import branch, interactive, plan, state, timebox, work_items
+        from azz.cli import (
+            branch,
+            claude,
+            interactive,
+            plan,
+            state,
+            timebox,
+            work_items,
+        )
 
-        for module in [work_items, timebox, state, branch, interactive, plan]:
+        for module in [
+            work_items,
+            timebox,
+            state,
+            branch,
+            interactive,
+            plan,
+            claude,
+        ]:
             module.register(self._app, self._engine)
 
     def run(self) -> None:

@@ -79,7 +79,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
         """Show the drift between .azz/tasks and the remote (read-only)."""
         _report(_load_changeset(engine))
 
-    def resolve(
+    def push(
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
         dry_run: bool = typer.Option(False, "--dry-run"),
     ) -> None:
@@ -93,7 +93,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
     plan_app.command("init")(init)
     plan_app.command("fetch")(fetch)
     plan_app.command("status")(status)
-    plan_app.command("resolve")(resolve)
+    plan_app.command("push")(push)
     app.add_typer(plan_app, name="plan")
 
 

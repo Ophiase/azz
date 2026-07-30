@@ -193,7 +193,7 @@ on Azure DevOps after it was fetched. Tell the user, and suggest
 ### Apply to the remote — confirm before running
 
 ```text
-azz plan resolve [OPTIONS]
+azz plan push [OPTIONS]
 ```
 
 Options:
@@ -213,7 +213,7 @@ notice; delete and recreate instead.
 1. Write or edit files in `.azz/tasks/`.
 2. Run `azz plan status` and show the user the drift.
 3. Ask the user to review the files.
-4. Let the user run `azz plan resolve` — do not run it yourself unless
+4. Let the user run `azz plan push` — do not run it yourself unless
    explicitly told to.
 
 ---
@@ -222,6 +222,6 @@ notice; delete and recreate instead.
 
 - `azz edit` — opens an editor to modify title/description; too interactive
 - `azz delete` — permanent, irreversible
-- `azz plan resolve` — the only plan command that writes to the remote
+- `azz plan push` — the only plan command that writes to the remote
 
 Never run these without a direct, explicit instruction from the user.

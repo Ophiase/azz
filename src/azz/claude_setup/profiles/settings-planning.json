@@ -14,7 +14,7 @@
       "Bash(azz plan status)"
     ],
     "deny": [
-      "Bash(azz plan resolve*)",
+      "Bash(azz plan push*)",
       "Bash(azz create*)",
       "Bash(azz c *)",
       "Bash(azz edit*)",

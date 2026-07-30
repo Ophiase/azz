@@ -12,9 +12,13 @@ Done:
     - `azz plan init` — create the gitignored `.azz/` directory
     - `azz plan fetch` — mirror remote items into local Markdown files
     - `azz plan status` — read-only drift against the remote
-    - `azz plan resolve` — apply with per-change confirmation
+    - `azz plan push` — apply with per-change confirmation
     - `item_id` write-back after creation
     - `remote_changed_date` metadata to separate remote edits from local ones
+- claude integration:
+    - `azz claude install [planning|standard]` — docs + permissions in one step
+    - `azz claude list` — describe the profiles
+    - profiles ship inside the package; `read-only` renamed to `planning`
 - interactive:
     - create item
         - more work item types

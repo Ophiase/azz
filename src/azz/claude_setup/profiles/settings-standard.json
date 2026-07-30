@@ -11,12 +11,12 @@
       "Bash(azz plan init)",
       "Bash(azz plan fetch)",
       "Bash(azz plan fetch *)",
-      "Bash(azz plan status)",
-      "Bash(azz plan resolve --dry-run)"
+      "Bash(azz plan status)"
     ],
     "deny": [
       "Bash(azz edit*)",
-      "Bash(azz delete*)"
+      "Bash(azz delete*)",
+      "Bash(azz plan push*)"
     ]
   }
 }

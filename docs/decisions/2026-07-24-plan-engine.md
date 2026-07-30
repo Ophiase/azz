@@ -258,6 +258,15 @@ functions with no `az` dependency and are the natural first target.
 
 ---
 
+## Addendum — naming
+
+`azz plan resolve` shipped as **`azz plan push`**. Sections 6 and 7 above use
+the original name. Two reasons for the change: `azz resolve <ID>` already
+exists and means "set state to Resolved", and `fetch`/`push` names the
+direction unambiguously.
+
+---
+
 ## Addendum — `init`, `fetch`, and remote freshness
 
 The original decision assumed intent files were authored by hand or by

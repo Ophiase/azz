@@ -96,10 +96,10 @@ want, delete the files you no longer need — a missing file never means
 "delete the work item".
 
 ```bash
-azz plan status              # read-only diff against the remote
-azz plan resolve             # apply, confirming each change
-azz plan resolve --dry-run   # same output as status
-azz plan resolve --yes       # apply without per-change confirmation
+azz plan status           # read-only diff against the remote
+azz plan push             # apply, confirming each change
+azz plan push --dry-run   # same output as status
+azz plan push --yes       # apply without per-change confirmation
 ```
 
 Re-running `azz plan fetch` refreshes files whose remote moved since the last
@@ -114,3 +114,21 @@ deletion stays explicit via `azz delete`.
 
 See [the design decision](docs/decisions/2026-07-24-plan-engine.md) for the
 rationale.
+
+### Claude integration
+
+From the project you want Claude to work on:
+
+```bash
+azz claude install            # planning profile (default)
+azz claude install standard
+azz claude list               # what each profile grants
+```
+
+This appends the command docs to `CLAUDE.md` and merges the matching
+permissions into `.claude/settings.json`, preserving anything already there.
+The `planning` profile lets Claude author intent files but denies every
+command that writes to Azure DevOps — you apply its plans with
+`azz plan push`.
+
+See [docs/claude.md](docs/claude.md) for details.
