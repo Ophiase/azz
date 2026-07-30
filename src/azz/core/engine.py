@@ -1,9 +1,11 @@
+from collections.abc import Sequence
 from copy import replace
 from logging import getLogger
+from typing import Final
 
 from azz.core.iteration_path import IterationPath
 from azz.core.timebox import Iteration
-from azz.core.wiql import build_wiql_query
+from azz.core.wiql import WIQLQuery, build_id_query, build_wiql_query
 from azz.core.work_item.work_item import work_item_factory
 from azz.core.work_item.work_item_filter import IterationPathFilter
 from azz.core.work_item.work_item_type import WorkItemType
@@ -15,21 +17,16 @@ from .work_item import ProjectNameFilter, WorkItem, WorkItemFilter, WorkItemStat
 
 logger = getLogger(__name__)
 
+MAX_IDS_PER_QUERY: Final = 200
+"""WIQL takes an arbitrary number of ids, but a query kept short stays well
+inside the service's statement-length limit and inside `az`'s argument list."""
+
 
 class Engine:
     def __init__(self, config: EngineConfig):
         self.config = config
 
-    def _fetch_tasks_from_project(
-        self,
-        project: str,
-        assigned_to: str | None = None,
-        states: frozenset[WorkItemState] | None = None,
-    ) -> tuple[WorkItem, ...]:
-        if states is None:
-            states = frozenset({WorkItemState.ACTIVE, WorkItemState.NEW})
-        wiql = build_wiql_query(assigned_to, states)
-
+    def _run_query(self, project: str, wiql: WIQLQuery) -> tuple[WorkItem, ...]:
         result = run_az_command_sync(
             "boards",
             "query",
@@ -43,6 +40,35 @@ class Engine:
             raise RuntimeError(f"Unexpected result format from az command: {result}")
 
         return tuple(work_item_factory(item) for item in result)
+
+    def _fetch_tasks_from_project(
+        self,
+        project: str,
+        assigned_to: str | None = None,
+        states: frozenset[WorkItemState] | None = None,
+    ) -> tuple[WorkItem, ...]:
+        if states is None:
+            states = frozenset({WorkItemState.ACTIVE, WorkItemState.NEW})
+        return self._run_query(project, build_wiql_query(assigned_to, states))
+
+    def get_work_items_by_id(
+        self, work_item_ids: Sequence[int]
+    ) -> tuple[WorkItem, ...]:
+        """
+        Resolve many ids in one query instead of one subprocess per id.
+
+        No state, assignee or timebox filter applies, so a Closed item owned by
+        somebody else still comes back. Ids the management project does not
+        contain are simply absent from the result — the caller decides whether
+        that means "gone".
+        """
+        unique_ids = tuple(dict.fromkeys(work_item_ids))
+        project = self.config.management_project
+        return tuple(
+            work_item
+            for chunk in _chunked(unique_ids, MAX_IDS_PER_QUERY)
+            for work_item in self._run_query(project, build_id_query(chunk))
+        )
 
     def list_work_items(
         self,
@@ -232,3 +258,11 @@ class Engine:
         result = edit_work_item_in_editor(item, edit_title)
         self.update_workitem(result)
         return result
+
+
+def _chunked(
+    values: Sequence[int], size: int
+) -> tuple[tuple[int, ...], ...]:
+    return tuple(
+        tuple(values[start : start + size]) for start in range(0, len(values), size)
+    )
