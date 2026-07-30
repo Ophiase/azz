@@ -3,6 +3,7 @@ from typing import Final
 
 PLAN_DIRECTORY_NAME: Final = ".azz"
 TASKS_DIRECTORY_NAME: Final = "tasks"
+CACHE_DIRECTORY_NAME: Final = "cache"
 
 
 def find_plan_root(start: Path | None = None) -> Path | None:
@@ -16,7 +17,13 @@ def find_plan_root(start: Path | None = None) -> Path | None:
 
 
 def tasks_directory(plan_root: Path) -> Path:
+    """The working tree — human and agent owned."""
     return plan_root / TASKS_DIRECTORY_NAME
+
+
+def cache_directory(plan_root: Path) -> Path:
+    """Our knowledge of the remote — machine owned. Never edited by hand."""
+    return plan_root / CACHE_DIRECTORY_NAME
 
 
 def intent_file_paths(plan_root: Path) -> tuple[Path, ...]:
