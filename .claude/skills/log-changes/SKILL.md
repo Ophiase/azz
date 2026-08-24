@@ -1,6 +1,12 @@
+---
+name: log-changes
+description: "Add the minimal CHANGELOG.md entry for user-visible work and keep VERSION and pyproject.toml in sync. Owns the patch numbering."
+disable-model-invocation: true
+---
+
 # Record changes in the CHANGELOG
 
-Add an entry for work that is user-visible. Keep [CHANGELOG.md](../../CHANGELOG.md)
+Add an entry for work that is user-visible. Keep [CHANGELOG.md](../../../CHANGELOG.md)
 readable at sight.
 
 ## Decide first: does this belong?

@@ -1,4 +1,4 @@
-# Recipes meant for agent use. Documented in .claude/CLAUDE.md.
+# Recipes meant for agent use. Documented in AGENTS.md.
 # `just *` is already allow-listed, so adding a recipe here needs no
 # settings.json change.
 

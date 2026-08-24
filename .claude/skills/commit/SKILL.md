@@ -1,3 +1,10 @@
+---
+name: commit
+description: "Commit the current uncommitted work in the repo's message style, after just checks passes. Never pushes, never rewrites history."
+disable-model-invocation: true
+allowed-tools: Bash(git status:*) Bash(git diff:*) Bash(git add:*) Bash(git commit:*) Bash(git log:*) Bash(just checks) Bash(just rumdl-fmt)
+---
+
 # Commit the current work
 
 Only commit when this command is invoked. Never commit spontaneously.

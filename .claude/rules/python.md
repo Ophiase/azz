@@ -1,18 +1,8 @@
 # Python
 
-As explained, we use:
-
-- Astral/uv for python package management and virtual environments
-  - always check the `pyproject.toml` for dependencies and scripts
-  - never try to `pip install` or manage the environment manually.
-  - as shown in the justfile, `uv run` is the recommended way to run python
-    commands locally.
-- Linting/Typecheck is done with Ruff/Ty
-  - always `just checks` before committing — it runs `rumdl` and
-    `precommit` in one command with a real exit code.
-  - never invoke `ruff` or `ty` directly.
-
-c.f. [`just -l`](../justfile) for more details on available commands.
+The toolchain itself (uv, `just checks`, Ruff/Ty) is described in
+`AGENTS.md`. What follows is how the Python code in this repository is
+expected to look.
 
 ## Code Practices
 
@@ -111,7 +101,7 @@ maintenance cost.
 A test is worth writing when it pins a **deterministic algorithmic
 behaviour** — parsing, diffing, normalization, slug generation — and
 especially when it defends an invariant documented in
-[PLAN.md](./PLAN.md). A broken invariant is a silent data-loss bug; that is
+[plan.md](./plan.md). A broken invariant is a silent data-loss bug; that is
 what the suite is for.
 
 A test is not worth writing when it needs the network, an `az` subprocess,

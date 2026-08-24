@@ -1,3 +1,10 @@
+---
+paths:
+  - "src/azz/plan/**"
+  - "src/azz/cache/**"
+  - "tests/**/*plan*.py"
+---
+
 # Plan Engine
 
 Read this before touching `src/azz/plan/`, `src/azz/cache/`, or any
@@ -7,13 +14,13 @@ model.
 The *why* lives in the decision records — read them before proposing a
 design change, not before a small fix:
 
-- [2026-07-24-plan-engine.md](../docs/decisions/2026-07-24-plan-engine.md)
+- [2026-07-24-plan-engine.md](../../docs/decisions/2026-07-24-plan-engine.md)
   — the shipped two-part design and its rejected alternatives.
-- [2026-07-31-plan-cache.md](../docs/decisions/2026-07-31-plan-cache.md)
+- [2026-07-31-plan-cache.md](../../docs/decisions/2026-07-31-plan-cache.md)
   — **Accepted and shipped** through phase 5. Adds `.azz/cache/` as a merge
   base and makes `status` offline. Supersedes the earlier record's rejection
   of a cache. Its addendum explains why the cache is also a second backend.
-- [2026-07-31-local-ids.md](../docs/decisions/2026-07-31-local-ids.md)
+- [2026-07-31-local-ids.md](../../docs/decisions/2026-07-31-local-ids.md)
   — **Accepted, not implemented.** `local_id` so a new item can parent
   another new one. Read it before touching `parent` or the create ordering.
 
