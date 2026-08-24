@@ -14,6 +14,11 @@ but I thought it could be useful for others as well,
 so I decided to make it public.
 Feel free to clone it to adapt it to your needs.
 
+![azz interactive on the demo board](docs/media/azz-demo.gif)
+
+The recording above is `azz --demo interactive` — a bundled fictional board,
+no Azure DevOps account needed. See [Demo mode](#demo-mode).
+
 ## Installation
 
 Requirements:
@@ -65,7 +70,7 @@ diff it against Azure DevOps, apply it with confirmation.
 
 ```bash
 azz plan init                # create the gitignored .azz/ directory
-azz plan fetch               # mirror your 20 most recent items into .azz/tasks
+azz plan fetch               # record your 20 most recent items in .azz/cache
 azz plan fetch 7651 7695     # or just these ones
 azz plan fetch -a -l 0       # everything, Closed included — a full local archive
 ```
@@ -80,7 +85,6 @@ state: Active
 type: Task
 parent: 100
 iteration: Sprint 42
-remote_changed_date: "2026-07-29T10:12:33+00:00"
 ---
 
 The body of the file is the work item description.
@@ -89,8 +93,9 @@ The body of the file is the work item description.
 Omit `item_id` to mark the file as a new task — it is written back into the
 file once the item is created. Fields absent from the frontmatter are never
 compared and never written, so a file containing only `title` will only ever
-touch the title. `remote_changed_date` is tool-managed; it records when the
-remote last changed so `azz` can tell a remote edit apart from a local one.
+touch the title. Nothing in the file is tool-managed except `item_id` and
+the title, both written back after a create — the remote state azz compares
+against lives in `.azz/cache/`, not in your files.
 
 Only the items you are working on are kept locally. Fetch as many as you
 want, delete the files you no longer need — a missing file never means
@@ -180,28 +185,12 @@ See [docs/claude.md](docs/claude.md) for details.
 
 ### Demo mode
 
-Every work item on a real board tends to be confidential, which makes it
-awkward to screenshot or record the tool. Demo mode runs everything against a
-bundled fictional board instead:
+Want to try azz before configuring anything? Demo mode runs against a bundled
+fictional board, with no Azure DevOps account and no environment variables:
 
 ```bash
-azz --demo interactive        # the TUI, on fake data
-azz --demo list
-AZZ_DEMO=1 azz list           # same, via the environment
+azz --demo interactive
 ```
 
-**It needs no Azure DevOps account and no environment variables at all** — it
-never reads your config and never touches the network, so it works on a fresh
-machine immediately after installing.
-
-Notes:
-
-- `--demo` must come *before* the subcommand: `azz --demo list`, not
-  `azz list --demo`.
-- Changes are discarded on exit, so every recording starts from the same
-  state. Set `AZZ_DEMO_DIR=<path>` to keep them instead.
-- The TUI subtitle says `DEMO DATA` so a recording can never be mistaken for
-  a real board.
-
-Demo mode is the cache backend with fixture data in it — the same machinery
-that makes `azz plan status` work offline.
+See [docs/demo.md](docs/demo.md) for the details and for regenerating the
+recording above.

@@ -40,3 +40,7 @@ mod agent 'agent.just'
 [default]
 @_list:
     just -l
+
+[group("dev")]
+@gif:
+    uv run --with cairosvg python tools/record_demo.py docs/media/azz-demo.gif

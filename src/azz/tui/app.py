@@ -9,9 +9,9 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import DataTable, Footer, Header
 
+from azz.backend import WorkItemBackend
 from azz.core.branch import branch_name
 from azz.core.clipboard import copy_to_clipboard
-from azz.core.engine import Engine
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItemState
 from azz.core.work_item.work_item import WorkItem
@@ -82,9 +82,9 @@ class AzzTUI(App[None]):
         Binding("q", "quit", "Quit"),
     ]
 
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, backend: WorkItemBackend) -> None:
         super().__init__()
-        self._engine = engine
+        self._engine = backend
         self._all_items: tuple[WorkItem, ...] = ()
         self._items: tuple[WorkItem, ...] = ()
         self._timeboxes: tuple[Iteration, ...] = ()

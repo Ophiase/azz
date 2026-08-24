@@ -8,3 +8,5 @@ select = ["E", "F", "UP", "B", "I", "SIM", "S", "RUF", "PTH", "C4", "ARG", "G"]
 
 [lint.per-file-ignores]
 "tests/**/*.py" = ["S101"]
+# Dev tooling shells out to fixed executables (uv, convert) by name.
+"tools/**/*.py" = ["S404", "S603", "S607"]
