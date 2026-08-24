@@ -5,24 +5,39 @@ BEGIN_MARKER: Final = "<!-- azz:begin -->"
 END_MARKER: Final = "<!-- azz:end -->"
 
 
-def install_docs(claude_md: Path, content: str) -> None:
-    """Insert the profile docs into CLAUDE.md, replacing a previous install.
+def install_block(document: Path, content: str) -> None:
+    """Insert azz's section, replacing a previous install.
 
-    Everything the user wrote outside the markers is left untouched.
+    Everything the developer wrote outside the markers is left untouched.
     """
     block = f"{BEGIN_MARKER}\n{content.strip()}\n{END_MARKER}\n"
-    if not claude_md.exists():
-        claude_md.write_text(block)
+    if not document.exists():
+        document.write_text(block)
         return
 
-    existing = claude_md.read_text()
-    if BEGIN_MARKER in existing and END_MARKER in existing:
-        claude_md.write_text(_replace_block(existing, block))
+    existing = document.read_text()
+    if _has_block(existing):
+        document.write_text(_replaced(existing, block))
         return
-    claude_md.write_text(f"{existing.rstrip()}\n\n{block}")
+    document.write_text(f"{existing.rstrip()}\n\n{block}")
 
 
-def _replace_block(existing: str, block: str) -> str:
+def remove_block(document: Path) -> bool:
+    """Drop azz's section. Reports whether there was one to drop."""
+    if not document.exists():
+        return False
+    existing = document.read_text()
+    if not _has_block(existing):
+        return False
+    document.write_text(_replaced(existing, "").rstrip() + "\n")
+    return True
+
+
+def _has_block(existing: str) -> bool:
+    return BEGIN_MARKER in existing and END_MARKER in existing
+
+
+def _replaced(existing: str, block: str) -> str:
     before, _, remainder = existing.partition(BEGIN_MARKER)
     _, _, after = remainder.partition(END_MARKER)
-    return f"{before}{block.rstrip()}{after}"
+    return f"{before.rstrip()}\n\n{block.rstrip()}{after}" if block else before + after

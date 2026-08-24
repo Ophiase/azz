@@ -9,14 +9,43 @@ azz claude install standard
 azz claude list               # show what each profile grants
 ```
 
-This writes two things:
+This writes three things:
 
-1. **Docs** appended to `CLAUDE.md` — tells Claude what commands exist and
-   how to use them
-2. **Permissions** merged into `.claude/settings.json` — controls what Claude
-   can run silently, what prompts you, and what is refused outright
+1. **A skill** at `.claude/skills/azz/SKILL.md` — what the commands are, the
+   intent-file format, and the hand-off ritual. Claude Code lists skills with
+   their descriptions, so it is reached for when you say "plan a task" and
+   costs nothing the rest of the time.
+2. **A note in `AGENTS.md`**, between `<!-- azz:begin -->` markers — the
+   tool-neutral convention, for Codex, Cursor, Gemini and anything else that
+   does not read skills.
+3. **Permissions** merged into `.claude/settings.json` — what the agent may
+   run silently, what prompts you, and what is refused outright.
 
 Use `--target <dir>` to install somewhere other than the current directory.
+
+## Why a skill rather than CLAUDE.md
+
+Earlier versions appended about a hundred lines to `CLAUDE.md`. That content
+is then loaded into *every* conversation in the repository, including the ones
+that never mention a work item. A skill is loaded on demand. Re-installing
+removes the old `CLAUDE.md` block, so you never carry both.
+
+## The hand-off
+
+The skill requires the agent to end any reply that touched `.azz/tasks/` with
+the list of files it changed and the two commands to run:
+
+```text
+Plan changed — 2 files in .azz/tasks:
+  ~ 7651-langfuse-trace.md     title, description
+  + buffer-late-events.md      new task, will be created
+
+Review:  azz plan status
+Apply:   azz plan push
+```
+
+It is also told never to claim it created or pushed a work item — nothing
+reaches Azure DevOps until you run `azz plan push`.
 
 ## Profiles
 

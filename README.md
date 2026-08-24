@@ -153,21 +153,25 @@ azz claude install standard   # or: also allow the imperative write commands
 azz claude list               # what each profile grants
 ```
 
-`azz claude install` writes two things:
+`azz claude install` writes three things:
 
-- the command docs into `CLAUDE.md`, so Claude knows the commands exist
-- the matching permissions into `.claude/settings.json`, so the harness
-  enforces what it may run
+- `.claude/skills/azz/SKILL.md` — the workflow and the file format, loaded
+  only when the conversation is actually about tasks
+- `AGENTS.md` — a short tool-neutral note, for agents that do not read skills
+- `.claude/settings.json` — the permissions the harness enforces
 
 Use `--target <dir>` to install somewhere other than the current directory.
 
-**It is idempotent — re-run it whenever you like.** The docs go between
-`<!-- azz:begin -->` and `<!-- azz:end -->` markers, so re-installing replaces
-that block and leaves the rest of your `CLAUDE.md` untouched. In
+**It is idempotent — re-run it whenever you like.** The skill file is owned by
+azz and rewritten wholesale. The `AGENTS.md` note sits between
+`<!-- azz:begin -->` markers, so the rest of the file is untouched. In
 `settings.json`, only rules starting with `Bash(azz` are replaced; your other
 permissions, `env`, and hooks are preserved. Because the old `azz` rules are
 dropped before the new ones are written, switching profiles leaves nothing
-stale behind — that is the upgrade path too: install again after updating azz.
+stale behind — that is the upgrade path too.
+
+Older versions appended their docs to `CLAUDE.md`. Re-installing removes that
+block: the skill replaces it, and is not loaded on every conversation.
 
 | Profile | Claude can | Claude cannot |
 |---|---|---|

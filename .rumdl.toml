@@ -12,7 +12,11 @@ exclude = [
     "LICENSE.md",
     "document_*.md",
     "**prompt_examples/**",
-    "docs/external/**"
+    "docs/external/**",
+
+    # Composed into a SKILL.md / AGENTS.md at install time, not documents.
+    "src/azz/claude_setup/profiles/skill-common.md",
+    "src/azz/claude_setup/profiles/agents-note.md"
 ]
 
 respect_gitignore = true

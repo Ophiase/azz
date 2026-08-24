@@ -23,7 +23,11 @@
       `▼` remote moved, `✗` both changed; `P` refreshes, `?` explains
     - demo mode — `azz --demo` or `AZZ_DEMO=1`, a fictional board needing no
       Azure DevOps credentials
-    - `azz claude install` is idempotent and safe to re-run
+    - `azz claude install` installs a Claude Code skill and an `AGENTS.md`
+      note instead of a `CLAUDE.md` block, and retires the old block on
+      re-install; the skill makes the agent report which intent files it
+      changed and the command to apply them
+    - `azz plan pull` is now in the installed permissions and docs
     - retire the `remote_changed_date` frontmatter key
     - fix `StateFilter`, which silently matched nothing for a single state
 

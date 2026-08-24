@@ -44,8 +44,14 @@ def register(app: typer.Typer, _engine: Engine) -> None:
 
 def _report_install(report: InstallReport) -> None:
     print(f"[green]Installed the [bold]{report.profile.value}[/bold] profile[/green]")
-    print(f"  docs      {report.docs_path}")
+    print(f"  skill     {report.skill_path}")
+    print(f"  agents    {report.agents_path}")
     print(f"  settings  {report.settings_path}")
+    if report.retired_claude_block:
+        print(
+            "\n[yellow]Removed the older azz block from CLAUDE.md[/yellow] — "
+            "the skill replaces it, and is loaded only when relevant."
+        )
     if report.profile is Profile.PLANNING:
         print(
             "\nClaude can now plan work in [bold].azz/tasks[/bold] but cannot "
