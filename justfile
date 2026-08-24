@@ -1,15 +1,19 @@
 mod agent 'agent.just'
 
+[group("user")]
+@install:
+    uv tool install .
+
+[group("user")]
 @run args:
     uv run azz {{ args }}
 
+[group("dev")]
 @precommit:
     uv run ruff check . --fix
     uv run ty check .
 
-@install:
-    uv tool install .
-
+[group("dev")]
 @install-dev:
     uv tool install --editable .
 
