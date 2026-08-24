@@ -6,10 +6,12 @@ from typing import Annotated, Final
 import typer
 from rich import print
 
-from azz.claude_setup import InstallReport, Profile, install
+from azz.claude_setup import InstallReport, InstallScope, Profile, install
+from azz.claude_setup.git_ignore import is_ignored
 from azz.core.engine import Engine
 
 DEFAULT_PROFILE: Final = Profile.PLANNING
+DEFAULT_SCOPE: Final = InstallScope.PROJECT
 DEFAULT_TARGET: Final = Path()
 
 
@@ -20,22 +22,29 @@ def register(app: typer.Typer, _engine: Engine) -> None:
         profile: Annotated[
             Profile, typer.Argument(help="Which capabilities to grant Claude.")
         ] = DEFAULT_PROFILE,
+        scope: Annotated[
+            InstallScope,
+            typer.Option("--scope", "-s", help="Share it, or keep it personal."),
+        ] = DEFAULT_SCOPE,
         target: Annotated[
             Path, typer.Option("--target", "-t", help="Project to install into.")
         ] = DEFAULT_TARGET,
     ) -> None:
-        """Add the azz docs and permissions to a project's Claude config."""
+        """Add the azz skill and permissions to a project's Claude config."""
         try:
-            report = install(profile, target)
+            report = install(profile, target, scope)
         except (OSError, ValueError) as error:
             print(f"[red]{error}[/red]")
             raise typer.Exit(code=1) from error
         _report_install(report)
 
     def list_profiles() -> None:
-        """Show the available profiles."""
+        """Show the available profiles and scopes."""
         for profile in Profile:
             print(f"[bold]{profile.value}[/bold] — {profile.summary}")
+        print()
+        for scope in InstallScope:
+            print(f"[bold]--scope {scope.value}[/bold] — {scope.summary}")
 
     claude_app.command("install")(install_profile)
     claude_app.command("list")(list_profiles)
@@ -43,18 +52,41 @@ def register(app: typer.Typer, _engine: Engine) -> None:
 
 
 def _report_install(report: InstallReport) -> None:
-    print(f"[green]Installed the [bold]{report.profile.value}[/bold] profile[/green]")
+    print(
+        f"[green]Installed the [bold]{report.profile.value}[/bold] profile[/green] "
+        f"([bold]{report.scope.value}[/bold] scope)"
+    )
     print(f"  skill     {report.skill_path}")
-    print(f"  agents    {report.agents_path}")
     print(f"  settings  {report.settings_path}")
+    if report.agents_path is not None:
+        print(f"  agents    {report.agents_path}")
     if report.retired_claude_block:
         print(
             "\n[yellow]Removed the older azz block from CLAUDE.md[/yellow] — "
             "the skill replaces it, and is loaded only when relevant."
         )
+    _report_sharing(report)
     if report.profile is Profile.PLANNING:
         print(
             "\nClaude can now plan work in [bold].azz/tasks[/bold] but cannot "
             "change Azure DevOps.\nYou apply its plans with "
             "[bold]azz plan push[/bold]."
+        )
+
+
+def _report_sharing(report: InstallReport) -> None:
+    if report.scope.shares_with_the_repository:
+        print("\nThese files belong in the repository — commit them.")
+        return
+    print(
+        "\nNothing shared was added to the repository. The skill is personal "
+        "and works in every project."
+    )
+    if is_ignored(report.settings_path) is False:
+        print(
+            f"\n[yellow]{report.settings_path} is not gitignored[/yellow] — it "
+            "holds your\npersonal permissions. To keep it out of the repository:"
+        )
+        print(
+            "\n  echo .claude/settings.local.json >> .git/info/exclude"
         )

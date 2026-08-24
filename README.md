@@ -148,12 +148,18 @@ checkout:
 ```bash
 cd ~/my-project
 azz plan init                 # create the gitignored .azz/ directory
-azz claude install            # planning profile (default)
-azz claude install standard   # or: also allow the imperative write commands
-azz claude list               # what each profile grants
+azz claude install                   # planning profile, shared with the repo
+azz claude install --scope user      # personal: nothing added to the repo
+azz claude install standard          # also allow the imperative write commands
+azz claude list                      # what each profile and scope grants
 ```
 
-`azz claude install` writes three things:
+On a repository your team shares and that has nothing to do with azz, use
+`--scope user`: the skill goes to `~/.claude/skills` where it serves every
+project, and the permissions to `.claude/settings.local.json`. No `AGENTS.md`
+note, no `settings.json`, nothing for anyone else to review.
+
+By default `azz claude install` writes three things into the repository:
 
 - `.claude/skills/azz/SKILL.md` — the workflow and the file format, loaded
   only when the conversation is actually about tasks
