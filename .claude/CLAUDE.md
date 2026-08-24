@@ -35,10 +35,24 @@ rules. Generic interpreters (`python3 -c`, `node -e`) always prompt, correctly
 so — never ask to blanket-allow them.
 
 The permission model in `.claude/settings.json` is a broad `allow` list with a
-short `deny` list (history rewrites, `azz delete`, `.env`) and an `ask` list
-(commit, push, `gh`, `az`, `azz plan push`, `azz edit`) as the boundary.
-`just *` already covers every recipe, so a new `agent.just` recipe needs no
-settings entry.
+`deny` list (history rewrites, `azz delete`, `sudo`, the environment, and every
+credential path — `.ssh`, `.aws`, `.gnupg`, `.kube`, `.netrc`, private keys)
+and an `ask` list (commit, push, `gh`, `az`, `azz plan push`, `azz edit`) as
+the boundary. `just *` already covers every recipe, so a new `agent.just`
+recipe needs no settings entry.
+
+## Hooks enforce what prose cannot
+
+`.claude/hooks/` holds the gates configured in `settings.json`:
+
+- `markdown-lint.sh` — `rumdl` on a markdown file right after an Edit/Write
+- `markdown-lint-turn.sh` — at the end of a turn, `rumdl` runs again on every
+  markdown file the turn changed. This is the net under the Edit/Write hook: a
+  file created with a Bash heredoc never reaches it. It blocks once per
+  distinct report, so an unfixable finding cannot loop.
+
+Both skip `CHANGELOG.md`, `LICENSE.md` and `.azz/`. A hook failure is a real
+finding, not noise — fix it before moving on.
 
 ## Skills
 

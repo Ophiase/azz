@@ -63,7 +63,9 @@ Keep the matching guide updated in the same change as the code it describes.
   by hand; `uv run` is how Python runs locally.
 - **Markdown** — linted with `rumdl`. Always set a language on fenced code
   blocks, keep lines short, and after editing any `.md` run `just rumdl` to
-  check and `just rumdl-fmt` to fix.
+  check and `just rumdl-fmt` to fix. In Claude Code a hook enforces this on
+  every markdown file you touch (see [.claude/CLAUDE.md](.claude/CLAUDE.md));
+  other agents must run it themselves.
 
 Read third-party library sources through the in-repo venv
 (`.venv/lib/python3.14/site-packages/...`), never through a global cache such

@@ -53,9 +53,54 @@
       "Bash(git commit --amend*)",
       "Bash(git rebase*)",
       "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
       "Bash(azz delete*)",
+      "Bash(sudo *)",
+      "Bash(sudo:*)",
+      "Bash(env)",
+      "Bash(env:*)",
+      "Bash(printenv:*)",
+      "Bash(*.ssh/*)",
+      "Bash(*.aws/*)",
+      "Bash(*.gnupg/*)",
+      "Bash(*.kube/*)",
+      "Bash(*.netrc*)",
+      "Bash(*id_rsa*)",
+      "Bash(*id_ed25519*)",
       "Read(./.env)",
-      "Read(./.envrc)"
+      "Read(./.envrc)",
+      "Read(**/.ssh/**)",
+      "Read(**/.aws/**)",
+      "Read(**/.gnupg/**)",
+      "Read(**/.kube/**)",
+      "Read(**/.netrc)",
+      "Read(**/id_rsa*)",
+      "Read(**/id_ed25519*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/markdown-lint.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/markdown-lint-turn.sh",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }
