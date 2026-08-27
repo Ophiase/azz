@@ -147,17 +147,18 @@ checkout:
 
 ```bash
 cd ~/my-project
-azz plan init                 # create the gitignored .azz/ directory
-azz claude install                   # planning profile, shared with the repo
-azz claude install --scope user      # personal: nothing added to the repo
-azz claude install standard          # also allow the imperative write commands
-azz claude list                      # what each profile and scope grants
+azz plan init                     # create the gitignored .azz/ directory
+azz claude install                # planning profile, shared with the repo
+azz claude install --scope user   # personal: nothing added to the repo
+azz claude install standard       # also allow the imperative write commands
+azz claude list                   # what each profile and scope grants
 ```
 
 On a repository your team shares and that has nothing to do with azz, use
-`--scope user`: the skill goes to `~/.claude/skills` where it serves every
-project, and the permissions to `.claude/settings.local.json`. No `AGENTS.md`
-note, no `settings.json`, nothing for anyone else to review.
+`--scope user`. Same files, in the same place — but the permissions go to
+`.claude/settings.local.json`, no `AGENTS.md` note is written, and everything
+is added to `.git/info/exclude`, which is per-clone and never committed. Your
+`git status` stays clean and your colleagues see nothing.
 
 By default `azz claude install` writes three things into the repository:
 

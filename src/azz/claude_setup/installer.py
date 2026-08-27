@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Final
 
 from .docs_block import install_block, remove_block
+from .git_ignore import add_local_excludes, is_tracked
 from .profile import Profile
 from .scope import InstallScope
 from .settings_merge import install_settings
@@ -23,15 +24,18 @@ class InstallReport:
     retired_claude_block: bool
     """An earlier azz version wrote its docs into CLAUDE.md. Re-installing
     removes that block so the content is not loaded twice."""
+    excluded: tuple[str, ...] = ()
+    """Patterns added to .git/info/exclude by a personal install."""
+    already_tracked: tuple[str, ...] = ()
+    """Paths git already tracks, which no ignore rule can hide."""
 
 
 def install(
     profile: Profile,
     target: Path,
     scope: InstallScope = InstallScope.PROJECT,
-    home: Path | None = None,
 ) -> InstallReport:
-    skill_path = scope.skill_path(target, home or Path.home())
+    skill_path = scope.skill_path(target)
     skill_path.parent.mkdir(parents=True, exist_ok=True)
     skill_path.write_text(profile.read_skill())
 
@@ -44,6 +48,7 @@ def install(
     else:
         agents_path = None
 
+    personal = _keep_out_of_the_repository(target, scope, skill_path, settings_path)
     return InstallReport(
         profile=profile,
         scope=scope,
@@ -51,4 +56,21 @@ def install(
         settings_path=settings_path,
         agents_path=agents_path,
         retired_claude_block=remove_block(target / CLAUDE_FILE_NAME),
+        excluded=personal[0],
+        already_tracked=personal[1],
     )
+
+
+def _keep_out_of_the_repository(
+    target: Path, scope: InstallScope, *paths: Path
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Local git excludes for a personal install, and the paths too late to
+    hide because git already tracks them."""
+    if scope.shares_with_the_repository:
+        return ((), ())
+    patterns = tuple(f"/{path.relative_to(target).as_posix()}" for path in paths)
+    tracked = tuple(
+        pattern for pattern, path in zip(patterns, paths, strict=True)
+        if is_tracked(target, path)
+    )
+    return add_local_excludes(target, patterns), tracked

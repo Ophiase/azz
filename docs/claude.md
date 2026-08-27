@@ -36,18 +36,23 @@ azz claude install --scope user
 
 | | `--scope project` (default) | `--scope user` |
 |---|---|---|
-| skill | `.claude/skills/azz/SKILL.md` | `~/.claude/skills/azz/SKILL.md` |
+| skill | `.claude/skills/azz/SKILL.md` | same path |
 | permissions | `.claude/settings.json` | `.claude/settings.local.json` |
 | `AGENTS.md` note | yes | no |
+| hidden with `.git/info/exclude` | no | yes |
 | goes in the repo | yes, commit it | no |
 
-The personal skill lives in your home directory, so it is installed once and
-works in every project. Only the permissions are per-project, because they
-are.
+The skill stays inside the project in both cases: it is only useful where
+`.azz/` is, and a skill in your home directory would follow you into personal
+projects that have nothing to do with Azure DevOps.
 
-`azz` checks whether `.claude/settings.local.json` is actually ignored by git
-and tells you how to exclude it if not. Many setups already ignore it
-globally.
+What changes is whether the files are committed. A personal install adds them
+to `.git/info/exclude`, which is per-clone and never committed — so
+`git status` stays clean for your colleagues without touching the shared
+`.gitignore`.
+
+If a path is already tracked by git, no ignore rule can hide it. `azz` says so
+rather than pretending the install was private.
 
 ## Why a skill rather than CLAUDE.md
 

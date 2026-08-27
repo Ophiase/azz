@@ -28,8 +28,7 @@
       re-install; the skill makes the agent report which intent files it
       changed and the command to apply them
     - `azz claude install --scope user` keeps the integration out of a shared
-      repository: skill in `~/.claude/skills`, permissions in
-      `settings.local.json`
+      repository, via `.git/info/exclude` rather than a committed file
     - `azz plan pull` is now in the installed permissions and docs
     - retire the `remote_changed_date` frontmatter key
     - fix `StateFilter`, which silently matched nothing for a single state

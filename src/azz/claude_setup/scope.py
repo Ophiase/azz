@@ -19,11 +19,11 @@ class InstallScope(StrEnum):
     def shares_with_the_repository(self) -> bool:
         return self is InstallScope.PROJECT
 
-    def skill_path(self, target: Path, home: Path) -> Path:
-        """Personal installs put the skill in the home directory, where it
-        serves every project and never reaches a shared repository."""
-        root = target if self.shares_with_the_repository else home
-        return root.joinpath(*SKILL_RELATIVE_PARTS)
+    def skill_path(self, target: Path) -> Path:
+        """Always inside the project: the skill is only useful where `.azz`
+        is. A personal install keeps it out of the repository with a local
+        git exclude, not by moving it to the home directory."""
+        return target.joinpath(*SKILL_RELATIVE_PARTS)
 
     def settings_path(self, target: Path) -> Path:
         parts = (
@@ -40,8 +40,8 @@ SCOPE_SUMMARIES: Final = {
         "the repository, for everyone working on it."
     ),
     InstallScope.USER: (
-        "Keep it to yourself: the skill goes to ~/.claude/skills and the "
-        "permissions to settings.local.json. Nothing is added to the "
-        "repository."
+        "Keep it to yourself: the same files, plus settings.local.json, "
+        "hidden from the repository with .git/info/exclude. Nothing is "
+        "committed and nothing leaks into your other projects."
     ),
 }

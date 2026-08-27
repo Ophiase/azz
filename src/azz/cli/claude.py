@@ -78,15 +78,23 @@ def _report_sharing(report: InstallReport) -> None:
     if report.scope.shares_with_the_repository:
         print("\nThese files belong in the repository — commit them.")
         return
-    print(
-        "\nNothing shared was added to the repository. The skill is personal "
-        "and works in every project."
-    )
-    if is_ignored(report.settings_path) is False:
+    if report.excluded:
+        print("\nHidden from the repository via [bold].git/info/exclude[/bold]:")
+        for pattern in report.excluded:
+            print(f"  {pattern}")
+    elif is_ignored(report.settings_path) is not False:
+        print("\nNothing was added to the repository.")
+    else:
         print(
-            f"\n[yellow]{report.settings_path} is not gitignored[/yellow] — it "
-            "holds your\npersonal permissions. To keep it out of the repository:"
+            "\n[yellow]Could not write .git/info/exclude[/yellow] — is this a "
+            "git working tree?\nThese files would otherwise show up for your "
+            "colleagues."
         )
+    if report.already_tracked:
         print(
-            "\n  echo .claude/settings.local.json >> .git/info/exclude"
+            "\n[yellow]Already committed, so no ignore rule can hide "
+            "them:[/yellow]"
         )
+        for pattern in report.already_tracked:
+            print(f"  {pattern}")
+        print("Remove them from the repository first, or use --scope project.")
