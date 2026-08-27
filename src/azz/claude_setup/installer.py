@@ -3,7 +3,12 @@ from pathlib import Path
 from typing import Final
 
 from .docs_block import install_block, remove_block
-from .git_ignore import add_local_excludes, is_tracked
+from .git_ignore import (
+    add_local_excludes,
+    is_ignored,
+    is_tracked,
+    write_self_ignore,
+)
 from .profile import Profile
 from .scope import InstallScope
 from .settings_merge import install_settings
@@ -24,8 +29,11 @@ class InstallReport:
     retired_claude_block: bool
     """An earlier azz version wrote its docs into CLAUDE.md. Re-installing
     removes that block so the content is not loaded twice."""
+    self_ignore_path: Path | None = None
+    """The `.gitignore` making the skill directory ignore itself."""
     excluded: tuple[str, ...] = ()
-    """Patterns added to .git/info/exclude by a personal install."""
+    """Patterns added to .git/info/exclude, for files in a directory azz does
+    not own and that git does not already ignore."""
     already_tracked: tuple[str, ...] = ()
     """Paths git already tracks, which no ignore rule can hide."""
 
@@ -48,7 +56,6 @@ def install(
     else:
         agents_path = None
 
-    personal = _keep_out_of_the_repository(target, scope, skill_path, settings_path)
     return InstallReport(
         profile=profile,
         scope=scope,
@@ -56,21 +63,39 @@ def install(
         settings_path=settings_path,
         agents_path=agents_path,
         retired_claude_block=remove_block(target / CLAUDE_FILE_NAME),
-        excluded=personal[0],
-        already_tracked=personal[1],
+        self_ignore_path=_self_ignore(scope, skill_path),
+        excluded=_exclude_settings(target, scope, settings_path),
+        already_tracked=_already_tracked(target, scope, skill_path, settings_path),
     )
 
 
-def _keep_out_of_the_repository(
-    target: Path, scope: InstallScope, *paths: Path
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """Local git excludes for a personal install, and the paths too late to
-    hide because git already tracks them."""
+def _self_ignore(scope: InstallScope, skill_path: Path) -> Path | None:
+    """azz owns the skill directory outright, so it can ignore itself."""
     if scope.shares_with_the_repository:
-        return ((), ())
-    patterns = tuple(f"/{path.relative_to(target).as_posix()}" for path in paths)
-    tracked = tuple(
-        pattern for pattern, path in zip(patterns, paths, strict=True)
-        if is_tracked(target, path)
+        return None
+    return write_self_ignore(skill_path.parent)
+
+
+def _exclude_settings(
+    target: Path, scope: InstallScope, settings_path: Path
+) -> tuple[str, ...]:
+    """`settings.local.json` sits in `.claude/`, which belongs to the project,
+    so it cannot be hidden by a directory-wide rule."""
+    if scope.shares_with_the_repository or is_ignored(settings_path) is not False:
+        return ()
+    return add_local_excludes(target, (_pattern(target, settings_path),))
+
+
+def _already_tracked(
+    target: Path, scope: InstallScope, *paths: Path
+) -> tuple[str, ...]:
+    """Paths it is too late to hide: git ignores never apply to tracked files."""
+    if scope.shares_with_the_repository:
+        return ()
+    return tuple(
+        _pattern(target, path) for path in paths if is_tracked(target, path)
     )
-    return add_local_excludes(target, patterns), tracked
+
+
+def _pattern(target: Path, path: Path) -> str:
+    return f"/{path.relative_to(target).as_posix()}"

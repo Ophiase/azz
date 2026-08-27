@@ -1,6 +1,7 @@
 import subprocess  # noqa: S404 - asking git about its own ignore rules
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Final
 
 CHECK_IGNORE_TIMEOUT_SECONDS = 5
 
@@ -75,3 +76,23 @@ def _git(repository: Path, *arguments: str) -> subprocess.CompletedProcess | Non
         )
     except (OSError, subprocess.SubprocessError):
         return None
+
+
+SELF_IGNORE_CONTENT: Final = """\
+# Personal azz install — this directory is not shared with the repository.
+# `*` ignores everything here, including this file.
+*
+"""
+
+
+def write_self_ignore(directory: Path) -> Path:
+    """Make a directory ignore itself, the way tool caches do.
+
+    Only valid for a directory the tool owns outright: `*` hides everything
+    inside it. It is visible where `.git/info/exclude` is not, so anyone
+    wondering why the directory is absent from git finds the answer next to it.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    ignore_file = directory / ".gitignore"
+    ignore_file.write_text(SELF_IGNORE_CONTENT)
+    return ignore_file

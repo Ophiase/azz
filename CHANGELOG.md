@@ -28,8 +28,8 @@
       re-install; the skill makes the agent report which intent files it
       changed and the command to apply them
     - `azz claude install` no longer touches the repository by default; it
-      hides its files with `.git/info/exclude`. `--scope project` commits
-      them, for a team that all uses azz
+      makes the skill directory ignore itself. `--scope project` commits the
+      files, for a team that all uses azz
     - `azz plan pull` is now in the installed permissions and docs
     - retire the `remote_changed_date` frontmatter key
     - fix `StateFilter`, which silently matched nothing for a single state

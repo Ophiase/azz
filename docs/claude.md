@@ -40,26 +40,34 @@ azz claude install --scope project   # shared with the team
 | skill | `.claude/skills/azz/SKILL.md` | same path |
 | permissions | `.claude/settings.local.json` | `.claude/settings.json` |
 | `AGENTS.md` note | no | yes |
-| hidden with `.git/info/exclude` | yes | no |
+| hidden from git | yes | no |
 | goes in the repo | no | yes, commit it |
 
 The skill stays inside the project in both cases: it is only useful where
 `.azz/` is, and a skill in your home directory would follow you into personal
 projects that have nothing to do with Azure DevOps.
 
-What changes is whether the files are committed. A personal install adds them
-to `.git/info/exclude`.
+What changes is whether the files are committed. A personal install hides
+them two different ways, because they sit in two different kinds of place.
 
-Why not `.gitignore`? Because `.gitignore` is itself a tracked file. Adding a
-line to it leaves `git status` permanently dirty, and you then have to choose
-between committing a rule your colleagues do not need and carrying a local
-modification that a stray `git commit -a` would sweep up. `.git/info/exclude`
-lives inside `.git/`, so it is not repository content at all: it cannot be
-committed, cannot be staged, and does not travel to other clones.
+**The skill directory ignores itself.** `.claude/skills/azz/` belongs to azz
+outright, so it gets a `.gitignore` containing `*` — the pattern tool caches
+use, and the one `azz plan init` already writes into `.azz/`. `*` hides
+everything in the directory including the `.gitignore` itself. It is visible
+next to what it hides, so anyone wondering why the directory is absent from
+git finds the answer immediately.
 
-A global ignore (`~/.config/git/ignore`) is the third option. It suits
-`settings.local.json`, which is personal everywhere, but not the skill — in a
-team that all uses azz you want to be able to commit that.
+**`settings.local.json` cannot use that**, because it lives in `.claude/`,
+which belongs to the project — a `*` rule there would hide the team's own
+settings and skills. It goes to `.git/info/exclude` instead, and only when git
+does not already ignore it. Many setups ignore it globally via
+`~/.config/git/ignore`, in which case azz writes nothing.
+
+Why not add a line to the repository's `.gitignore`? Because `.gitignore` is
+itself a tracked file: writing to it leaves `git status` permanently dirty,
+and forces a choice between committing a rule colleagues do not need and
+carrying a local modification a stray `git commit -a` would sweep up. Both
+mechanisms above avoid touching anything the repository tracks.
 
 If a path is already tracked by git, no ignore rule can hide it. `azz` says so
 rather than pretending the install was private.

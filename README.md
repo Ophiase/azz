@@ -161,9 +161,11 @@ in a work repo your colleagues share. It writes:
   only when the conversation is actually about tasks
 - `.claude/settings.local.json` — the permissions the harness enforces
 
-and adds both to `.git/info/exclude`, which lives inside `.git/` and is
-therefore never committed and never staged by accident. Your `git status`
-stays clean.
+The skill directory gets a `.gitignore` containing `*`, so it ignores itself
+the way tool caches do — the same pattern `azz plan init` writes into `.azz/`.
+`settings.local.json` is covered by `.git/info/exclude` when git does not
+already ignore it. Nothing the repository tracks is touched, and your
+`git status` stays clean.
 
 `--scope project` is for a repository where the whole team uses azz: the
 permissions go to the shared `settings.json`, a short note is added to

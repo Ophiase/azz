@@ -78,17 +78,15 @@ def _report_sharing(report: InstallReport) -> None:
     if report.scope.shares_with_the_repository:
         print("\nThese files belong in the repository — commit them.")
         return
-    if report.excluded:
-        print("\nHidden from the repository via [bold].git/info/exclude[/bold]:")
-        for pattern in report.excluded:
-            print(f"  {pattern}")
-    elif is_ignored(report.settings_path) is not False:
-        print("\nNothing was added to the repository.")
-    else:
+    print("\nNothing was added to the repository:")
+    if report.self_ignore_path is not None:
+        print(f"  {report.self_ignore_path} makes that directory ignore itself")
+    for pattern in report.excluded:
+        print(f"  {pattern} is excluded in .git/info/exclude")
+    if not report.excluded and is_ignored(report.settings_path) is False:
         print(
-            "\n[yellow]Could not write .git/info/exclude[/yellow] — is this a "
-            "git working tree?\nThese files would otherwise show up for your "
-            "colleagues."
+            "  [yellow]could not exclude "
+            f"{report.settings_path}[/yellow] — is this a git working tree?"
         )
     if report.already_tracked:
         print(
