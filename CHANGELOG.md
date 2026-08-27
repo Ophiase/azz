@@ -15,29 +15,29 @@
 ## v0.1
 
 - **v0.1.2 — 2026-07-31**
-    - plan engine — write work items as Markdown in `.azz/tasks`, review, then
-      apply: `azz plan init | fetch | pull | status | push | prune`
-    - `.azz/cache` records the remote each file was synced from, so
-      `azz plan status` is offline and tells a remote edit from a local one
-    - `azz interactive` shows a plan gutter: `●` in sync, `◆` local changes,
-      `▼` remote moved, `✗` both changed; `P` refreshes, `?` explains
-    - demo mode — `azz --demo`, a fictional board needing no credentials
-    - `azz claude install` sets up Claude Code with a skill and permissions,
-      and by default adds nothing to the repository
+  - plan engine — write work items as Markdown in `.azz/tasks`, review, then
+    apply: `azz plan init | fetch | pull | status | push | prune`
+  - `.azz/cache` records the remote each file was synced from, so
+    `azz plan status` is offline and tells a remote edit from a local one
+  - `azz interactive` shows a plan gutter: `●` in sync, `◆` local changes,
+    `▼` remote moved, `✗` both changed; `P` refreshes, `?` explains
+  - demo mode — `azz --demo`, a fictional board needing no credentials
+  - `azz claude install` sets up Claude Code with a skill and permissions,
+    and by default adds nothing to the repository
 
-- **v0.1.1**
-    - interactive:
-        - create item
-            - more work item types
-            - working timebox
-            - description field
-        - show item content
-        - fix branch crash
-    - timebox management
-    - task dependencies
-    - fix work_item/user_story/task management
-    - state update shortcuts
-    - claude integration: read-only and standard permission profiles
+- **v0.1.1 — 2026-07-31**
+  - interactive:
+    - create item
+      - more work item types
+      - working timebox
+      - description field
+    - show item content
+    - fix branch crash
+  - timebox management
+  - task dependencies
+  - fix work_item/user_story/task management
+  - state update shortcuts
+  - claude integration: read-only and standard permission profiles
 
 - **v0.1.0**
-    - initial public release
+  - initial public release
