@@ -33,7 +33,7 @@ class InstallReport:
 def install(
     profile: Profile,
     target: Path,
-    scope: InstallScope = InstallScope.PROJECT,
+    scope: InstallScope = InstallScope.USER,
 ) -> InstallReport:
     skill_path = scope.skill_path(target)
     skill_path.parent.mkdir(parents=True, exist_ok=True)

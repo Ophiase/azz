@@ -11,7 +11,7 @@ from azz.claude_setup.git_ignore import is_ignored
 from azz.core.engine import Engine
 
 DEFAULT_PROFILE: Final = Profile.PLANNING
-DEFAULT_SCOPE: Final = InstallScope.PROJECT
+DEFAULT_SCOPE: Final = InstallScope.USER
 DEFAULT_TARGET: Final = Path()
 
 
@@ -24,7 +24,7 @@ def register(app: typer.Typer, _engine: Engine) -> None:
         ] = DEFAULT_PROFILE,
         scope: Annotated[
             InstallScope,
-            typer.Option("--scope", "-s", help="Share it, or keep it personal."),
+            typer.Option("--scope", "-s", help="Keep it personal, or share it."),
         ] = DEFAULT_SCOPE,
         target: Annotated[
             Path, typer.Option("--target", "-t", help="Project to install into.")

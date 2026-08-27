@@ -148,29 +148,33 @@ checkout:
 ```bash
 cd ~/my-project
 azz plan init                     # create the gitignored .azz/ directory
-azz claude install                # planning profile, shared with the repo
-azz claude install --scope user   # personal: nothing added to the repo
-azz claude install standard       # also allow the imperative write commands
-azz claude list                   # what each profile and scope grants
+azz claude install                   # personal: nothing added to the repo
+azz claude install --scope project   # shared: for a team that all uses azz
+azz claude install standard          # also allow the imperative write commands
+azz claude list                      # what each profile and scope grants
 ```
 
-On a repository your team shares and that has nothing to do with azz, use
-`--scope user`. Same files, in the same place — but the permissions go to
-`.claude/settings.local.json`, no `AGENTS.md` note is written, and everything
-is added to `.git/info/exclude`, which is per-clone and never committed. Your
-`git status` stays clean and your colleagues see nothing.
-
-By default `azz claude install` writes three things into the repository:
+**The default install adds nothing to the repository**, so it is safe to run
+in a work repo your colleagues share. It writes:
 
 - `.claude/skills/azz/SKILL.md` — the workflow and the file format, loaded
   only when the conversation is actually about tasks
-- `AGENTS.md` — a short tool-neutral note, for agents that do not read skills
-- `.claude/settings.json` — the permissions the harness enforces
+- `.claude/settings.local.json` — the permissions the harness enforces
+
+and adds both to `.git/info/exclude`, which lives inside `.git/` and is
+therefore never committed and never staged by accident. Your `git status`
+stays clean.
+
+`--scope project` is for a repository where the whole team uses azz: the
+permissions go to the shared `settings.json`, a short note is added to
+`AGENTS.md` for agents that do not read skills, and nothing is excluded — you
+commit the files.
 
 Use `--target <dir>` to install somewhere other than the current directory.
 
 **It is idempotent — re-run it whenever you like.** The skill file is owned by
-azz and rewritten wholesale. The `AGENTS.md` note sits between
+azz and rewritten wholesale, and the exclude lines are not duplicated. The
+`AGENTS.md` note sits between
 `<!-- azz:begin -->` markers, so the rest of the file is untouched. In
 `settings.json`, only rules starting with `Bash(azz` are replaced; your other
 permissions, `env`, and hooks are preserved. Because the old `azz` rules are

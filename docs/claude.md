@@ -25,31 +25,41 @@ Use `--target <dir>` to install somewhere other than the current directory.
 
 ## Shared, or personal
 
-The default installs into the repository, which is right when the whole team
-uses azz. It is wrong on a repository that merely happens to be where you
-work: your colleagues get an `AGENTS.md` note and a `settings.json` entry for
-a tool they do not use.
+The default is personal, because the common case is a repository that merely
+happens to be where you work: your colleagues have no reason to receive an
+`AGENTS.md` note and a `settings.json` entry for a tool they do not use. Use
+`--scope project` when the whole team uses azz.
 
 ```bash
-azz claude install --scope user
+azz claude install                   # personal (default)
+azz claude install --scope project   # shared with the team
 ```
 
-| | `--scope project` (default) | `--scope user` |
+| | `--scope user` (default) | `--scope project` |
 |---|---|---|
 | skill | `.claude/skills/azz/SKILL.md` | same path |
-| permissions | `.claude/settings.json` | `.claude/settings.local.json` |
-| `AGENTS.md` note | yes | no |
-| hidden with `.git/info/exclude` | no | yes |
-| goes in the repo | yes, commit it | no |
+| permissions | `.claude/settings.local.json` | `.claude/settings.json` |
+| `AGENTS.md` note | no | yes |
+| hidden with `.git/info/exclude` | yes | no |
+| goes in the repo | no | yes, commit it |
 
 The skill stays inside the project in both cases: it is only useful where
 `.azz/` is, and a skill in your home directory would follow you into personal
 projects that have nothing to do with Azure DevOps.
 
 What changes is whether the files are committed. A personal install adds them
-to `.git/info/exclude`, which is per-clone and never committed — so
-`git status` stays clean for your colleagues without touching the shared
-`.gitignore`.
+to `.git/info/exclude`.
+
+Why not `.gitignore`? Because `.gitignore` is itself a tracked file. Adding a
+line to it leaves `git status` permanently dirty, and you then have to choose
+between committing a rule your colleagues do not need and carrying a local
+modification that a stray `git commit -a` would sweep up. `.git/info/exclude`
+lives inside `.git/`, so it is not repository content at all: it cannot be
+committed, cannot be staged, and does not travel to other clones.
+
+A global ignore (`~/.config/git/ignore`) is the third option. It suits
+`settings.local.json`, which is personal everywhere, but not the skill — in a
+team that all uses azz you want to be able to commit that.
 
 If a path is already tracked by git, no ignore rule can hide it. `azz` says so
 rather than pretending the install was private.
