@@ -14,7 +14,7 @@
 
 ## v0.1
 
-- **v0.1.2 — 2026-07-31**
+- **v0.1.2**
   - plan engine — write work items as Markdown in `.azz/tasks`, review, then
     apply: `azz plan init | fetch | pull | status | push | prune`
   - `.azz/cache` records the remote each file was synced from, so
@@ -25,7 +25,7 @@
   - `azz claude install` sets up Claude Code with a skill and permissions,
     and by default adds nothing to the repository
 
-- **v0.1.1 — 2026-07-31**
+- **v0.1.1**
   - interactive:
     - create item
       - more work item types

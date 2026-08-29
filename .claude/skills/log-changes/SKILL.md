@@ -23,10 +23,10 @@ If in doubt, propose the line and ask rather than writing it.
 2. `git log --oneline origin/main..HEAD` to see what is unreleased locally.
    Never bump more than one patch ahead of the remote head.
 3. Choose the entry:
-   - Extend the latest `- **vX.Y.Z — DATE**` bullet if this is the same
-     concern.
+   - Extend the latest `- **vX.Y.Z**` bullet if this is the same concern.
    - Open a new patch bullet if it is a distinct concern:
-     `- **v0.1.1 — 2026-07-31**` under the existing `## v0.1` section.
+     `- **v0.1.1**` under the existing `## v0.1` section. Never add a date:
+     the changelog carries versions only.
    - **Never** open a new `## vX.Y` section — minor versions are the
      developer's call only.
 4. Write the lines. One line per change, imperative, no marketing. Match the
