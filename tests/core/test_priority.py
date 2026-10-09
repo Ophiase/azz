@@ -8,6 +8,7 @@ import pytest
 from azz.core.work_item.priority import PRIORITY_FIELD, Priority
 from azz.core.work_item.work_item_type import WorkItemType
 from azz.tui.priority_threshold import PriorityThreshold
+from azz.tui.priority_tint import PriorityTint
 from tests.conftest import RemoteFactory
 
 
@@ -51,3 +52,19 @@ def test_the_threshold_keeps_only_items_at_least_as_urgent(
 @pytest.mark.parametrize("item_type", list(WorkItemType))
 def test_a_type_label_fits_its_column(item_type: WorkItemType) -> None:
     assert 0 < len(item_type.short_label) <= 4
+
+
+@pytest.mark.parametrize(
+    ("priority", "tint"),
+    [
+        (Priority.CRITICAL, PriorityTint.CRITICAL),
+        (Priority.HIGH, None),
+        (Priority.MEDIUM, PriorityTint.MINOR),
+        (Priority.LOW, PriorityTint.MINOR),
+        (None, None),
+    ],
+)
+def test_only_critical_and_below_high_are_tinted(
+    priority: Priority | None, tint: PriorityTint | None
+) -> None:
+    assert PriorityTint.of(priority) is tint
