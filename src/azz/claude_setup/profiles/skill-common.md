@@ -84,3 +84,30 @@ Rules for that block:
 - Give the two commands verbatim, so they can be copied.
 - **Never claim you created, updated or pushed a work item.** Nothing reaches
   Azure DevOps until the developer runs `azz plan push` themselves.
+
+## Opening a pull request — `/azz pr`
+
+When the developer asks for a pull request (or types `/azz pr`), run every
+step from the directory of the branch — a worktree included:
+
+1. `azz pr create --dry-run` shows the repository, the target branch, the
+   linked work item and the reviewer that azz inferred.
+2. Read what the branch adds: `git log <remote>/<target>..HEAD` and
+   `git diff <remote>/<target>...HEAD`.
+3. Write a title (imperative, at most 72 characters, no period) and a
+   Markdown description: `## What` (the problem, then 2–4 bullets) and
+   `## How` (the choices a reviewer needs). If the project has its own PR
+   description guide, follow it instead. Never sign it as an agent.
+4. Open it — this pushes the branch and prompts the developer:
+
+```bash
+azz pr create --title "Split oversized OCR batches" --description-file - <<'MARKDOWN'
+## What
+...
+MARKDOWN
+```
+
+Running it again updates the open pull request instead of opening another.
+In a worktree whose `.envrc` direnv has not approved, run azz from the
+worktree with the main checkout's settings:
+`direnv exec <main checkout> azz pr create ...`.
