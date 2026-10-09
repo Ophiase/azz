@@ -7,12 +7,12 @@ from rich.style import Style
 from rich.text import Text
 from textual.widgets import DataTable
 
-from azz.core.work_item.work_item import WorkItem
 from azz.core.work_item.work_item_state import WorkItemState
 from azz.plan.tracking import TrackingStatus
 from azz.tui.column_widths import Cell, column_widths
 from azz.tui.plan_state import PlanState
 from azz.tui.priority_tint import PriorityTint
+from azz.tui.rows import DisplayRow
 
 _STATE_STYLES: Final[dict[str, str]] = {
     WorkItemState.ACTIVE.value: "bold green",
@@ -27,11 +27,11 @@ _GUTTER_COLUMN_KEYS: Final[tuple[str, ...]] = ("marker", "plan")
 
 _COLUMN_LABELS: Final[tuple[tuple[str, str], ...]] = (
     ("date", "Date"),
-    ("tb", "TB"),
     ("type", "Type"),
     ("state", "S"),
-    ("priority", "P"),
     ("name", "Name"),
+    ("tb", "TB"),
+    ("priority", "P"),
     ("id", "ID"),
 )
 
@@ -46,6 +46,7 @@ class WorkItemTable(DataTable):
         tint.value for tint in PriorityTint
     }
     _row_tints: tuple[PriorityTint | None, ...] = ()
+    _row_styles: tuple[Style, ...] = ()
 
     def on_mount(self) -> None:
         self.cursor_type = "row"
@@ -54,10 +55,12 @@ class WorkItemTable(DataTable):
     def _get_row_style(self, row_index: int, base_style: Style) -> Style:
         row_style = super()._get_row_style(row_index, base_style)
         in_body = 0 <= row_index < len(self._row_tints)
-        tint = self._row_tints[row_index] if in_body else None
-        if tint is None:
+        if not in_body:
             return row_style
-        return row_style + self.get_component_styles(tint.value).rich_style
+        tint = self._row_tints[row_index]
+        if tint is not None:
+            row_style += self.get_component_styles(tint.value).rich_style
+        return row_style + self._row_styles[row_index]
 
     @staticmethod
     def sortable_column_key(column_index: int) -> str | None:
@@ -96,7 +99,7 @@ class WorkItemTable(DataTable):
 
     def populate(
         self,
-        items: tuple[WorkItem, ...],
+        display_rows: Sequence[DisplayRow],
         *,
         preserve_cursor: bool = False,
         show_project: bool = False,
@@ -108,29 +111,33 @@ class WorkItemTable(DataTable):
         saved_row = self.cursor_row
         rows = tuple(
             _item_row(
-                item,
+                display_row,
                 show_project=show_project,
-                selected=item.id in selected_ids,
-                plan_status=plan_state.status(item.id),
+                selected=display_row.item.id in selected_ids,
+                plan_status=plan_state.status(display_row.item.id),
             )
-            for item in items
+            for display_row in display_rows
         )
         self.clear(columns=True)
-        self._row_tints = tuple(PriorityTint.of(item.priority) for item in items)
+        self._row_tints = tuple(
+            PriorityTint.of(display_row.item.priority) for display_row in display_rows
+        )
+        self._row_styles = tuple(display_row.style for display_row in display_rows)
         self._build_columns(rows, sort_column=sort_column, sort_reverse=sort_reverse)
-        for item, row in zip(items, rows, strict=True):
-            self.add_row(*row, key=str(item.id))
+        for display_row, row in zip(display_rows, rows, strict=True):
+            self.add_row(*row, key=str(display_row.item.id))
         if preserve_cursor and 0 <= saved_row < self.row_count:
             self.move_cursor(row=saved_row)
 
 
 def _item_row(
-    item: WorkItem,
+    display_row: DisplayRow,
     *,
     show_project: bool,
     selected: bool,
     plan_status: TrackingStatus,
 ) -> tuple[Cell, ...]:
+    item = display_row.item
     timebox_number = (
         item.iteration_path.optional_number if item.iteration_path else None
     )
@@ -140,16 +147,23 @@ def _item_row(
         if item.changed_date
         else "─────"
     )
-    display_name = item.name if show_project else item.stripped_name
+    name = item.name if show_project else item.stripped_name
     marker = Text("◆", style="bold cyan") if selected else Text(" ")
     return (
         marker,
         Text(plan_status.glyph, style=plan_status.style),
         date,
-        str(timebox_number) if timebox_number is not None else "─",
         item.item_type.short_label,
         Text(item.state.initial, style=color),
+        _name_cell(display_row, name),
+        str(timebox_number) if timebox_number is not None else "─",
         str(int(item.priority)) if item.priority is not None else "─",
-        display_name,
         str(item.id),
     )
+
+
+def _name_cell(display_row: DisplayRow, name: str) -> Text:
+    """The name between its tree branch and the count a fold hides."""
+    hidden = display_row.folded_descendants
+    fold_hint = f"  +{hidden}" if hidden else ""
+    return Text.assemble((display_row.branch, "dim"), name, (fold_hint, "dim"))

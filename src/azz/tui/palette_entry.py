@@ -10,6 +10,7 @@ KEY_LABELS: Final = {
     "plus": "+",
     "minus": "-",
     "escape": "Esc",
+    "space": "Space",
     "up": "↑",
     "down": "↓",
 }

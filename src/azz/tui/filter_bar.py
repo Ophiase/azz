@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from textual.widgets import Label
 
+from azz.tui.rows import RowLayout
+
 
 class FilterBar(Label):
     DEFAULT_CSS = "FilterBar { height: 1; padding: 0 1; }"
@@ -14,6 +16,7 @@ class FilterBar(Label):
         current_timebox_only: bool,
         show_project: bool,
         priority: str,
+        layout: RowLayout,
         item_count: int,
         visual_mode: bool = False,
         selection_count: int = 0,
@@ -32,5 +35,13 @@ class FilterBar(Label):
             f"[a] closed: {closed}  ·  [A] others: {others}"
             f"  ·  [c] current: {current}  ·  [p] project: {project}"
             f"  ·  priority: {priority}"
+            f"{_layout_flags(layout)}"
             f"  ·  {item_count} items{mode}"
         )
+
+
+def _layout_flags(layout: RowLayout) -> str:
+    """Only the layouts that are on, so the default bar stays as short."""
+    tree = "  ·  [green]tree[/green]" if layout.tree else ""
+    split = "  ·  [green]split[/green]" if layout.split_by_priority else ""
+    return tree + split
