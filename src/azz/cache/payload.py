@@ -6,9 +6,9 @@ from typing import Any, Self
 
 from azz.core.work_item import WorkItem
 from azz.core.work_item.description_format import (
-    DESCRIPTION_FIELD,
     FORMATS_KEY,
     DescriptionFormat,
+    body_field_of,
 )
 from azz.core.work_item.work_item import work_item_factory
 
@@ -20,6 +20,7 @@ class AzureField(StrEnum):
     STATE = "System.State"
     PROJECT = "System.TeamProject"
     DESCRIPTION = "System.Description"
+    REPRO_STEPS = "Microsoft.VSTS.TCM.ReproSteps"
     ASSIGNED_TO = "System.AssignedTo"
     ITERATION_PATH = "System.IterationPath"
     PARENT = "System.Parent"
@@ -64,7 +65,7 @@ class ItemPayload:
     def with_description_format(self, description_format: DescriptionFormat) -> Self:
         formats = {
             **(self.data.get(FORMATS_KEY) or {}),
-            DESCRIPTION_FIELD: description_format.value,
+            body_field_of(self.data): description_format.value,
         }
         return type(self)({**self.data, FORMATS_KEY: formats})
 

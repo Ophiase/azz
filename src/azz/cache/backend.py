@@ -103,7 +103,7 @@ class CacheBackend:
     def update_workitem(self, work_item: WorkItem) -> None:
         payload = self._require_payload(work_item.id).with_fields({
             AzureField.TITLE: work_item.name,
-            AzureField.DESCRIPTION: work_item.description or None,
+            AzureField(work_item.item_type.body_field): work_item.description or None,
         })
         self._store.write_item(
             payload.with_description_format(work_item.description_format)

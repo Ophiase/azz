@@ -15,12 +15,14 @@ def remote_advanced(base: WorkItem, later: WorkItem) -> bool:
 
 
 def _signature(work_item: WorkItem) -> tuple[str, ...]:
-    """Exactly the fields an intent file can express."""
+    """Exactly the fields an intent file can express. The body is compared as
+    stored, not as read: the two snapshots may come from `az` commands that
+    declare its format differently, and the same text must not read as a move."""
     return (
         work_item.name,
         str(work_item.state),
         str(work_item.item_type),
         str(work_item.parent_id or ""),
         iteration_name(work_item) or "",
-        normalize_markdown(work_item.markdown_description),
+        normalize_markdown(work_item.description),
     )

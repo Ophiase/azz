@@ -1,5 +1,8 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, Final
+
+DESCRIPTION_FIELD: Final = "System.Description"
+REPRO_STEPS_FIELD: Final = "Microsoft.VSTS.TCM.ReproSteps"
 
 
 class WorkItemType(StrEnum):
@@ -10,6 +13,12 @@ class WorkItemType(StrEnum):
     DEFAULT = "Default"
     ISSUE = "Issue"
     FEATURE = "Feature"
+
+    @property
+    def body_field(self) -> str:
+        """The field a work item form shows as its body: a Bug's form hides
+        the Description and shows Repro Steps instead."""
+        return REPRO_STEPS_FIELD if self is WorkItemType.BUG else DESCRIPTION_FIELD
 
     @classmethod
     def type_from_fields(cls, data: dict[str, Any]) -> WorkItemType:

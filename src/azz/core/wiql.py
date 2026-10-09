@@ -14,6 +14,7 @@ WORK_ITEM_FIELDS: Final = ", ".join((
     "[System.State]",
     "[System.AssignedTo]",
     "[System.Description]",
+    "[Microsoft.VSTS.TCM.ReproSteps]",
     "[System.WorkItemType]",
     "[System.IterationPath]",
     "[System.Parent]",

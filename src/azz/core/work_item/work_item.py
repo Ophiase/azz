@@ -6,7 +6,7 @@ from pydantic.dataclasses import dataclass
 
 from azz.core.timebox import IterationPath
 
-from .description_format import DescriptionFormat
+from .description_format import DescriptionFormat, body_of
 from .helper import Markdown
 from .work_item_state import STATE_COLORS, WorkItemState
 from .work_item_type import WorkItemType
@@ -112,7 +112,7 @@ class WorkItem:
             "name": fields.get("System.Title", ""),
             "state": WorkItemState.from_str(fields.get("System.State", "Unknown")),
             "project": fields.get("System.TeamProject", ""),
-            "description": fields.get("System.Description"),
+            "description": body_of(data),
             "assigned_to": assigned_name,
             "iteration_path": IterationPath(
                 fields.get("System.IterationPath"), normalized=True

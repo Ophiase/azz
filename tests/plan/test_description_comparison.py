@@ -9,6 +9,7 @@ from azz.core.work_item.description_format import DescriptionFormat
 from azz.core.work_item.helper import html_to_markdown
 from azz.plan.comparison import field_diffs
 from azz.plan.models import LocalItem
+from azz.plan.snapshot_diff import remote_advanced
 from tests.conftest import RemoteFactory
 
 MARKDOWN = "- a **bold** step\n- snake_case_name"
@@ -39,3 +40,17 @@ def test_a_real_edit_is_still_a_difference(remote_item: RemoteFactory) -> None:
     local = LocalItem(path=Path("item.md"), description=MARKDOWN + "\n- new step")
     (diff,) = field_diffs(local, _markdown_remote(remote_item))
     assert diff.field_name == "description"
+
+
+def test_the_same_text_declared_differently_is_neither_moved_nor_edited(
+    remote_item: RemoteFactory,
+) -> None:
+    """`show` declares plain text `az` stored as HTML; `query` declares nothing.
+    Right after a create, that must still be SYNC, not CONFLICT."""
+    from_show = replace(
+        remote_item(description=MARKDOWN), description_format=DescriptionFormat.HTML
+    )
+    from_query = _markdown_remote(remote_item)
+    local = LocalItem(path=Path("item.md"), description=MARKDOWN)
+    assert not remote_advanced(from_show, from_query)
+    assert field_diffs(local, from_show) == ()

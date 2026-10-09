@@ -16,7 +16,7 @@ from .editor import edit_work_item_in_editor
 from .engine_config import EngineConfig
 from .runner import run_az_command_sync, run_az_void_sync
 from .work_item import ProjectNameFilter, WorkItem, WorkItemFilter, WorkItemState
-from .work_item.description_format import DESCRIPTION_FIELD, DescriptionFormat
+from .work_item.description_format import FORMATS_KEY, DescriptionFormat
 from .work_item_patch import WorkItemPatch
 
 logger = getLogger(__name__)
@@ -105,10 +105,20 @@ class Engine:
         return work_item_factory(result)
 
     def update_workitem(self, work_item: WorkItem) -> None:
-        """Title and description, the description in the format the item
-        declares. Only Markdown needs `az rest`; HTML keeps `az boards`."""
+        """Title and body, the body in the format the item declares and in the
+        field its form shows. Only Markdown needs `az rest`."""
+        body_field = work_item.item_type.body_field
         if work_item.description_format is DescriptionFormat.MARKDOWN:
-            self._send_patch(_content_patch(work_item))
+            self._send_patch(
+                WorkItemPatch(
+                    work_item.id,
+                    {
+                        "System.Title": work_item.name,
+                        body_field: work_item.description or "",
+                    },
+                    frozenset({body_field}),
+                )
+            )
             return
         run_az_command_sync(
             "boards",
@@ -117,29 +127,43 @@ class Engine:
             f"--id={work_item.id}",
             "--fields",
             f"System.Title={work_item.name}",
-            f"System.Description={work_item.description or ''}",
+            f"{body_field}={work_item.description or ''}",
         )
 
     def _send_patch(self, patch: WorkItemPatch) -> None:
+        """Raises when Azure DevOps answers without storing a field as Markdown,
+        rather than leaving a silently unconverted body behind."""
         with tempfile.TemporaryDirectory() as directory:
             body_path = Path(directory) / "patch.json"
             patch.write_body(body_path)
-            run_az_command_sync(*patch.az_arguments(self.config.org_url, body_path))
+            result = run_az_command_sync(
+                *patch.az_arguments(self.config.org_url, body_path)
+            )
+        formats = result.get(FORMATS_KEY) or {} if isinstance(result, dict) else {}
+        refused = sorted(
+            name
+            for name in patch.markdown_fields
+            if str(formats.get(name, "")).lower() != DescriptionFormat.MARKDOWN
+        )
+        if refused:
+            raise RuntimeError(
+                f"#{patch.work_item_id}: Azure DevOps kept {', '.join(refused)} as HTML"
+            )
 
-    def _store_description_as_markdown(
-        self, work_item_id: int, description: str
+    def _store_body(
+        self, work_item_id: int, item_type: WorkItemType, body: str
     ) -> None:
         """Best effort: the item already exists, so failing here would report a
-        created item as not created. It keeps the text `az` stored instead."""
+        created item as not created. The body is then missing on the remote, and
+        the next `azz plan push` sends it as a local edit."""
+        body_field = item_type.body_field
         patch = WorkItemPatch(
-            work_item_id, {DESCRIPTION_FIELD: description}, DescriptionFormat.MARKDOWN
+            work_item_id, {body_field: body}, frozenset({body_field})
         )
         try:
             self._send_patch(patch)
         except RuntimeError as error:
-            logger.warning(
-                "#%s: description not stored as Markdown: %s", work_item_id, error
-            )
+            logger.warning("#%s: body not stored: %s", work_item_id, error)
 
     def update_work_item_state(
         self, work_item_id: int, new_state: WorkItemState
@@ -225,10 +249,7 @@ class Engine:
         management_project = self.config.management_project
 
         timebox = self.get_current_timebox(management_project)
-        if self.config.prepend_project_name:
-            task_name = f"[{project}] - {name}"
-        else:
-            task_name = name
+        task_name = self.config.project_title(name, project)
 
         cmd = [
             "boards",
@@ -244,12 +265,6 @@ class Engine:
             management_project,
         ]
 
-        if description:
-            cmd.extend([
-                "--description",
-                description,
-            ])
-
         result = run_az_command_sync(*cmd)
 
         if not isinstance(result, dict):
@@ -257,7 +272,7 @@ class Engine:
 
         item = WorkItem.from_fields(result)
         if description:
-            self._store_description_as_markdown(item.id, description)
+            self._store_body(item.id, item_type, description)
         if timebox.path:
             self.set_timebox(item.id, timebox)
         item = replace(item, item_type=item_type, iteration_path=timebox.path)
@@ -299,13 +314,3 @@ def _chunked(
         tuple(values[start : start + size]) for start in range(0, len(values), size)
     )
 
-
-def _content_patch(work_item: WorkItem) -> WorkItemPatch:
-    return WorkItemPatch(
-        work_item.id,
-        {
-            "System.Title": work_item.name,
-            DESCRIPTION_FIELD: work_item.description or "",
-        },
-        work_item.description_format,
-    )

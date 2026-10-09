@@ -128,12 +128,22 @@ stale the cache is.
   `pull` writes the working tree. Collapsing them removes the merge base.
 - **Descriptions carry a format.** `WorkItem.description_format` is read
   from `multilineFieldsFormat`, which `az boards query` leaves empty, so it
-  falls back to "no HTML tag means Markdown". Always read
-  `markdown_description`: running Markdown through the HTML converter
-  escapes it. Comparison also accepts that escaped reading, so files pulled
-  before the format was known stay in sync. Pushes write Markdown through
-  `az rest` (`core/work_item_patch.py`); a title-only update keeps the
-  item's format, because Azure DevOps cannot turn Markdown back into HTML.
+  falls back to "no HTML tag means Markdown". Text without a tag reads
+  verbatim whatever the declared format, so `show` and `query` agree on it;
+  always read `markdown_description`, since the HTML converter escapes
+  Markdown. `remote_advanced` compares the stored text, never a reading.
+  Comparison also accepts the escaped reading, so older pulls stay in sync.
+- **The body lives in the field the form shows.** `WorkItemType.body_field`:
+  Repro Steps for a Bug, the Description otherwise. A Bug with empty Repro
+  Steps still reads its Description, which is where older Bugs were written.
+- **A Markdown body is written through `az rest`** (`core/work_item_patch.py`)
+  with a `/multilineFieldsFormat` operation, and `Engine` raises when the
+  answer is not Markdown. Azure DevOps ignores that operation when the value
+  equals the stored one, so a Markdown value always ends with one newline.
+  A create sends no body to `az boards`, then patches it; a title-only update
+  keeps the item's format, because Markdown cannot be turned back into HTML.
+- **The `[project] -` prefix is added once.** `EngineConfig.project_title`
+  leaves a title that already starts with it alone: pulled files carry it.
 
 ## Current state of the cache migration
 

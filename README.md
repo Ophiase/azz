@@ -157,10 +157,12 @@ iteration: Sprint 42
 The body of the file is the work item description.
 ```
 
-Descriptions are stored on Azure DevOps as Markdown, not HTML: a pushed or
-edited description switches the field to Markdown, which Azure DevOps
-cannot turn back into HTML. That write goes through `az rest`, so it needs
-`az login` rather than a PAT alone.
+The body is stored on Azure DevOps as Markdown, not HTML: a pushed or
+edited body switches the field to Markdown, which Azure DevOps cannot turn
+back into HTML. For a Bug it goes to Repro Steps, the field its form shows.
+That write goes through `az rest`, so it needs `az login` rather than a PAT
+alone. A title may keep the `[project] -` prefix of a pulled file: it is
+never added twice.
 
 Omit `item_id` to mark the file as a new task — it is written back into the
 file once the item is created. Fields absent from the frontmatter are never
