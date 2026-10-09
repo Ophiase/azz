@@ -74,7 +74,9 @@ azz interactive     # or: azz i
 Your work items open as a tree — tasks under their user story, stories under
 their epic — split into one band per priority, most urgent on top. A parent
 outside your filters (another timebox, say) still shows, dimmed, so a task
-never loses its context. A fine underline closes each band.
+never loses its context. A fine underline closes each band. Resolved and
+Closed items show faded; with `a`, the Closed ones that nothing open hangs on
+to gather in a last band at the bottom.
 
 The keys you need to start:
 

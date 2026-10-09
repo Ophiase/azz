@@ -11,15 +11,15 @@ from azz.core.work_item.work_item_state import WorkItemState
 from azz.plan.tracking import TrackingStatus
 from azz.tui.column_widths import Cell, column_widths
 from azz.tui.plan_state import PlanState
-from azz.tui.priority_tint import PriorityTint
+from azz.tui.row_tint import RowTint
 from azz.tui.rows import DisplayRow
 
 _STATE_STYLES: Final[dict[str, str]] = {
     WorkItemState.ACTIVE.value: "bold green",
     WorkItemState.NEW.value: "yellow",
     WorkItemState.DESIGN.value: "bright_blue",
-    WorkItemState.RESOLVED.value: "cyan",
-    WorkItemState.CLOSED.value: "bright_black",
+    WorkItemState.RESOLVED.value: "",
+    WorkItemState.CLOSED.value: "",
 }
 
 # Unlabelled single-glyph gutters: the selection marker, then the plan state.
@@ -41,11 +41,12 @@ class WorkItemTable(DataTable):
     WorkItemTable { height: 1fr; }
     WorkItemTable > .work-table--critical { background: $error 18%; }
     WorkItemTable > .work-table--minor { background: $primary 10%; }
+    WorkItemTable > .work-table--done { color: $foreground 35%; }
     """
     COMPONENT_CLASSES: ClassVar = DataTable.COMPONENT_CLASSES | {
-        tint.value for tint in PriorityTint
+        tint.value for tint in RowTint
     }
-    _row_tints: tuple[PriorityTint | None, ...] = ()
+    _row_tints: tuple[RowTint | None, ...] = ()
     _row_styles: tuple[Style, ...] = ()
 
     def on_mount(self) -> None:
@@ -120,7 +121,7 @@ class WorkItemTable(DataTable):
         )
         self.clear(columns=True)
         self._row_tints = tuple(
-            PriorityTint.of(display_row.item.priority) for display_row in display_rows
+            RowTint.of_item(display_row.item) for display_row in display_rows
         )
         self._row_styles = tuple(display_row.style for display_row in display_rows)
         self._build_columns(rows, sort_column=sort_column, sort_reverse=sort_reverse)
