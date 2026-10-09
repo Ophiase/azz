@@ -63,7 +63,58 @@ azz --version
 In your project repository,
 configure a `.envrc` file like `.envrc.example`.
 
-### Plan engine
+### Interactive mode
+
+This is how you will actually use azz day to day. One command:
+
+```bash
+azz interactive     # or: azz i
+```
+
+The keys you need to start:
+
+| Key | |
+|---|---|
+| `j` / `k` | move down / up (arrows work too) |
+| `n` | new task — `N` for a child of the selected one |
+| `r` | rename · `e` edit the description · `s` change state |
+| `+` / `-` | move to the next / previous timebox |
+| `a` | show Closed · `A` other people's · `c` current timebox only |
+| `v` | visual mode, to act on several items at once |
+| `b` | copy a git branch name for the selected item |
+| `q` | quit |
+
+**`Ctrl+P` opens the command palette**, which lists everything — including the
+keys not shown in the footer. Reach for it whenever you are not sure.
+
+### Everyday commands
+
+For scripting, or when you want one thing without opening the TUI:
+
+```bash
+azz list                      # your open items (alias: azz l)
+azz list -a                   # include Closed
+azz list -c                   # current timebox only
+azz list -ds -l 20            # with dates, sorted by change, last 20
+azz show 7651                 # full details of one item
+
+azz create "Fix the login redirect"          # alias: azz c
+azz create "Add metrics" -t Bug -p 7412      # type, and a parent item
+azz state Active 7651         # or: azz close 7651 / azz resolve 7651
+azz attach 7412 7651 7695     # make items children of a parent
+azz set_timebox 7651          # move into the current sprint
+
+azz timebox                   # the current sprint
+azz branch 7651               # a git branch name, copied to the clipboard
+```
+
+Every command takes `--help`.
+
+### Plan engine — planning a batch of work
+
+You do not need this to use azz. It exists for the case where you want to
+write out several work items, review them, and apply them in one go — on your
+own, or with an agent doing the writing.
 
 Declarative work item management: express the desired state in local files,
 diff it against Azure DevOps, apply it with confirmation.

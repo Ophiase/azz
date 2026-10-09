@@ -11,6 +11,7 @@
 - an interactive panel to reconcile a divergent item
 - widen `register(app, engine: Engine)` to `WorkItemBackend` and drop the
   `cast` in `app.py`
+- better command palette in interactive mode.
 
 ## v0.1
 
