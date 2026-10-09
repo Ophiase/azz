@@ -11,9 +11,12 @@
 - an interactive panel to reconcile a divergent item
 - widen `register(app, engine: Engine)` to `WorkItemBackend` and drop the
   `cast` in `app.py`
-- better command palette in interactive mode.
 
 ## v0.1
+
+- **v0.1.3**
+  - `Ctrl+P` lists every key binding, including the twelve the footer hides
+  - the README opens on interactive mode rather than the plan engine
 
 - **v0.1.2**
   - plan engine — write work items as Markdown in `.azz/tasks`, review, then

@@ -15,6 +15,7 @@ from azz.core.clipboard import copy_to_clipboard
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItemState
 from azz.core.work_item.work_item import WorkItem
+from azz.tui.command_provider import WorkItemCommands
 from azz.tui.create_screen import CreateScreen, NewTaskData
 from azz.tui.detail_screen import DetailScreen
 from azz.tui.filter_bar import FilterBar
@@ -52,6 +53,8 @@ _OPEN_STATES: Final = frozenset({
 class AzzTUI(App[None]):
     TITLE = "azz interactive"
     CSS = "Screen { background: transparent; }"
+
+    COMMANDS: ClassVar = App.COMMANDS | {WorkItemCommands}
 
     BINDINGS: ClassVar = [
         Binding("k", "cursor_up", "Up", show=False),
