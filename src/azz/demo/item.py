@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from azz.cache import AzureField, ItemPayload
 from azz.core.work_item import WorkItemState
+from azz.core.work_item.priority import Priority
 from azz.core.work_item.work_item_type import WorkItemType
 
 
@@ -19,6 +20,7 @@ class DemoItem(BaseModel):
     timebox_number: int | None = None
     parent_id: int | None = None
     assignee: str | None = None
+    priority: Priority | None = None
     description: str | None = None
 
     def to_payload(
@@ -41,6 +43,8 @@ class DemoItem(BaseModel):
             fields[AzureField.ITERATION_PATH.value] = timebox_path
         if self.parent_id is not None:
             fields[AzureField.PARENT.value] = self.parent_id
+        if self.priority is not None:
+            fields[AzureField.PRIORITY.value] = int(self.priority)
         if self.description:
             fields[AzureField.DESCRIPTION.value] = self.description
         return ItemPayload({"id": self.id, "fields": fields})
