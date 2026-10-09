@@ -1,6 +1,6 @@
 ---
 name: azz
-description: Plan and manage Azure DevOps work items from this project. Use whenever the developer asks to plan a task, write or refine a task description, break work down into tasks, check what they are working on, or sync task files — and whenever you touch a .azz/tasks/*.md intent file.
+description: Plan and manage Azure DevOps work items from this project. Use whenever the developer asks to plan a task, write or refine a task description, break work down into tasks, check what they are working on, sync task files, or open a pull request — and whenever you touch a .azz/tasks/*.md intent file.
 ---
 
 # azz — plan work items

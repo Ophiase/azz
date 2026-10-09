@@ -58,6 +58,7 @@ class AzzApp:
             claude,
             interactive,
             plan,
+            pull_request,
             state,
             timebox,
             work_items,
@@ -69,6 +70,7 @@ class AzzApp:
             state,
             branch,
             plan,
+            pull_request,
             claude,
         ]:
             module.register(self._app, self._backend)

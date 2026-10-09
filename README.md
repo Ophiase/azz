@@ -110,6 +110,21 @@ azz branch 7651               # a git branch name, copied to the clipboard
 
 Every command takes `--help`.
 
+### Pull requests
+
+Run from the branch, in any worktree. azz reads the repository from the
+branch's remote, links the work item its name carries, and makes you the
+reviewer. Running it again updates the open pull request.
+
+```bash
+azz pr create --dry-run       # show what would be opened
+azz pr create                 # push, then open (or update) the PR
+azz pr create --title "Fix the redirect" -f description.md -w 7652
+```
+
+Without `--title`, the title is the work item's and the description lists
+the commits. In Claude Code, `/azz pr` writes both from the diff.
+
 ### Plan engine — planning a batch of work
 
 You do not need this to use azz. It exists for the case where you want to
