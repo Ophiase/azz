@@ -8,6 +8,7 @@ from azz.core.timebox import IterationPath
 
 from .description_format import DescriptionFormat, body_of
 from .helper import Markdown
+from .priority import Priority
 from .work_item_state import STATE_COLORS, WorkItemState
 from .work_item_type import WorkItemType
 
@@ -25,6 +26,7 @@ class WorkItem:
     iteration_path: IterationPath | None = None
     parent_id: int | None = None
     changed_date: datetime | None = None
+    priority: Priority | None = None
     description_format: DescriptionFormat = DescriptionFormat.HTML
 
     @property
@@ -119,6 +121,7 @@ class WorkItem:
             ),
             "parent_id": fields.get("System.Parent"),
             "changed_date": changed_date,
+            "priority": Priority.of_fields(fields),
             "description_format": DescriptionFormat.of_payload(data),
         }
 

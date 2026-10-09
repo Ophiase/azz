@@ -21,6 +21,7 @@ class AzureField(StrEnum):
     PROJECT = "System.TeamProject"
     DESCRIPTION = "System.Description"
     REPRO_STEPS = "Microsoft.VSTS.TCM.ReproSteps"
+    PRIORITY = "Microsoft.VSTS.Common.Priority"
     ASSIGNED_TO = "System.AssignedTo"
     ITERATION_PATH = "System.IterationPath"
     PARENT = "System.Parent"
@@ -103,5 +104,8 @@ def _optional(work_item: WorkItem) -> dict[str, Any]:
         AzureField.ITERATION_PATH.value: iteration_path,
         AzureField.PARENT.value: work_item.parent_id,
         AzureField.CHANGED_DATE.value: changed_date,
+        AzureField.PRIORITY.value: (
+            int(work_item.priority) if work_item.priority is not None else None
+        ),
     }
     return {key: value for key, value in candidates.items() if value is not None}

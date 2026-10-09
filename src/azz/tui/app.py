@@ -14,6 +14,7 @@ from azz.core.branch import branch_name
 from azz.core.clipboard import copy_to_clipboard
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItemState
+from azz.core.work_item.priority import Priority
 from azz.core.work_item.work_item import WorkItem
 from azz.tui.command_provider import WorkItemCommands
 from azz.tui.create_screen import CreateScreen, NewTaskData
@@ -21,6 +22,8 @@ from azz.tui.detail_screen import DetailScreen
 from azz.tui.filter_bar import FilterBar
 from azz.tui.plan_legend import PlanLegendScreen
 from azz.tui.plan_state import PlanState
+from azz.tui.priority_picker import PriorityPickerScreen
+from azz.tui.priority_threshold import PriorityThreshold
 from azz.tui.rename_screen import RenameScreen
 from azz.tui.search_screen import SearchScreen
 from azz.tui.state_picker import StatePickerScreen
@@ -33,6 +36,7 @@ _SORT_DEFAULT_REVERSE: Final[dict[str, bool]] = {
     "tb": True,
     "type": False,
     "state": False,
+    "priority": False,
     "name": False,
 }
 
@@ -87,6 +91,12 @@ class AzzTUI(App[None]):
         Binding("q", "quit", "Quit"),
     ]
 
+    PALETTE_COMMANDS: ClassVar = (
+        ("Raise priority", "raise_priority"),
+        ("Lower priority", "lower_priority"),
+        ("Show priority", "priority_threshold"),
+    )
+
     def __init__(self, backend: WorkItemBackend) -> None:
         super().__init__()
         self._engine = backend
@@ -104,6 +114,7 @@ class AzzTUI(App[None]):
         self._committed_ids: frozenset[int] = frozenset()
         self._selected_ids: frozenset[int] = frozenset()
         self._plan_state = PlanState()
+        self._priority_threshold = PriorityThreshold()
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -145,7 +156,9 @@ class AzzTUI(App[None]):
     def _apply_filters(self, *, preserve_cursor: bool = False) -> None:
         visible_states = _ALL_STATES if self._include_closed else _OPEN_STATES
         items = tuple(
-            item for item in self._all_items if item.state in visible_states
+            item
+            for item in self._all_items
+            if item.state in visible_states and self._priority_threshold.admits(item)
         )
         if self._current_timebox_only:
             current_number = self._current_timebox_number()
@@ -179,6 +192,8 @@ class AzzTUI(App[None]):
                 return str(item.item_type)
             case "state":
                 return item.state.value
+            case "priority":
+                return Priority.or_lowest(item.priority)
             case "name":
                 return (item.stripped_name or "").lower()
             case _:
@@ -199,6 +214,7 @@ class AzzTUI(App[None]):
             show_others=self._show_others,
             current_timebox_only=self._current_timebox_only,
             show_project=self._show_project,
+            priority=self._priority_threshold.label,
             item_count=len(self._items),
             visual_mode=self._visual_mode,
             selection_count=len(self._selected_ids),
@@ -280,18 +296,12 @@ class AzzTUI(App[None]):
 
     @work
     async def action_search(self) -> None:
-        """Select the chosen item; open it when the filters hide its row."""
-        chosen_id = await self.push_screen_wait(SearchScreen(self._all_items))
-        if chosen_id is None:
-            return
-        row = next(
-            (index for index, item in enumerate(self._items) if item.id == chosen_id),
-            None,
-        )
-        if row is None:
-            await self._show_detail(chosen_id)
-            return
-        self.query_one(WorkItemTable).move_cursor(row=row)
+        """Search the rows on screen and move the cursor to the chosen one."""
+        chosen_id = await self.push_screen_wait(SearchScreen(self._items))
+        rows = (index for index, item in enumerate(self._items) if item.id == chosen_id)
+        row = next(rows, None)
+        if row is not None:
+            self.query_one(WorkItemTable).move_cursor(row=row)
 
     @on(DataTable.HeaderSelected)
     def on_header_selected(self, event: DataTable.HeaderSelected) -> None:
@@ -458,6 +468,38 @@ class AzzTUI(App[None]):
             for i in self._all_items
         )
         self._apply_filters(preserve_cursor=True)
+
+    @work
+    async def action_raise_priority(self) -> None:
+        await self._shift_priority(-1)
+
+    @work
+    async def action_lower_priority(self) -> None:
+        await self._shift_priority(+1)
+
+    async def _shift_priority(self, step: int) -> None:
+        """Selection or cursor row; an item without a priority starts from the
+        lowest."""
+        targets = self._selected_or_cursor_items()
+        shifted = {
+            item.id: Priority.or_lowest(item.priority).shifted(step) for item in targets
+        }
+        await asyncio.gather(*[
+            asyncio.to_thread(self._engine.update_work_item_priority, item_id, priority)
+            for item_id, priority in shifted.items()
+        ])
+        self._all_items = tuple(
+            replace(item, priority=shifted[item.id]) if item.id in shifted else item
+            for item in self._all_items
+        )
+        self._apply_filters(preserve_cursor=True)
+
+    @work
+    async def action_priority_threshold(self) -> None:
+        chosen = await self.push_screen_wait(PriorityPickerScreen())
+        if chosen is not None:
+            self._priority_threshold = chosen
+            self._apply_filters()
 
     async def action_timebox_next(self) -> None:
         await self._move_timebox(+1)

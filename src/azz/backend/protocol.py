@@ -2,6 +2,7 @@ from typing import Protocol
 
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItem, WorkItemState
+from azz.core.work_item.priority import Priority
 from azz.core.work_item.work_item_type import WorkItemType
 
 
@@ -35,6 +36,10 @@ class WorkItemBackend(Protocol):
     ) -> None: ...
 
     def update_work_item_title(self, work_item_id: int, new_title: str) -> None: ...
+
+    def update_work_item_priority(
+        self, work_item_id: int, priority: Priority
+    ) -> None: ...
 
     def create_work_item_helper(
         self,

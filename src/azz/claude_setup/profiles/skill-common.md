@@ -71,7 +71,7 @@ edit anything in `.azz/tasks/`, **end your reply with this block**:
 
 ```text
 Plan changed — 2 files in .azz/tasks:
-  ~ 7651-langfuse-trace.md     title, description
+  ~ 4103-buffer-late-events.md title, description
   + buffer-late-events.md      new task, will be created
 
 Review:  azz plan status
@@ -84,6 +84,19 @@ Rules for that block:
 - Give the two commands verbatim, so they can be copied.
 - **Never claim you created, updated or pushed a work item.** Nothing reaches
   Azure DevOps until the developer runs `azz plan push` themselves.
+
+## Starting work on a task
+
+The branch for a work item is named by azz, never invented:
+
+```bash
+azz branch 4103                     # first line: dev/tb-12-4103-buffer-late-events-in-the
+git switch -c dev/tb-12-4103-buffer-late-events-in-the
+```
+
+Keep that name: `azz pr create` reads the work item id from it and links the
+pull request to the item. A task that exists only in `.azz/tasks` has no id
+yet — the developer pushes it first.
 
 ## Opening a pull request — `/azz pr`
 
@@ -101,7 +114,7 @@ step from the directory of the branch — a worktree included:
 4. Open it — this pushes the branch and prompts the developer:
 
 ```bash
-azz pr create --title "Split oversized OCR batches" --description-file - <<'MARKDOWN'
+azz pr create --title "Buffer late events in the window operator" --description-file - <<'MARKDOWN'
 ## What
 ...
 MARKDOWN

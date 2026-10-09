@@ -23,6 +23,9 @@
   - the README opens on interactive mode rather than the plan engine
   - `azz --help` describes every command, and shows aliases as `list | l`
     instead of an undocumented entry each
+  - interactive: a `P` priority column, and palette commands to raise,
+    lower and filter by priority
+  - interactive: `/` searches only the rows on screen
 
 - **v0.1.2**
   - plan engine — write work items as Markdown in `.azz/tasks`, review, then

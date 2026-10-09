@@ -23,11 +23,12 @@ _GUTTER_COLUMN_KEYS: Final[tuple[str, ...]] = ("marker", "plan")
 
 _COLUMN_LABELS: Final[tuple[tuple[str, str], ...]] = (
     ("date", "Date"),
-    ("id", "ID"),
     ("tb", "TB"),
     ("type", "Type"),
-    ("state", "State"),
+    ("state", "S"),
+    ("priority", "P"),
     ("name", "Name"),
+    ("id", "ID"),
 )
 
 
@@ -115,9 +116,10 @@ def _item_row(
         marker,
         Text(plan_status.glyph, style=plan_status.style),
         date,
-        str(item.id),
         str(timebox_number) if timebox_number is not None else "─",
-        str(item.item_type),
-        Text(str(item.state), style=color),
+        item.item_type.short_label,
+        Text(item.state.initial, style=color),
+        str(int(item.priority)) if item.priority is not None else "─",
         display_name,
+        str(item.id),
     )

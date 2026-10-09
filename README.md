@@ -81,12 +81,17 @@ The keys you need to start:
 | `+` / `-` | move to the next / previous timebox |
 | `a` | show Closed · `A` other people's · `c` current timebox only |
 | `v` | visual mode, to act on several items at once |
-| `/` | fuzzy-search ids and titles · `Enter` jumps to the item |
+| `/` | fuzzy-search the rows on screen · `Enter` jumps to the item |
 | `b` | copy a git branch name for the selected item |
 | `q` | quit |
 
 **`Ctrl+P` opens the command palette**, which lists everything — including the
 keys not shown in the footer. Reach for it whenever you are not sure.
+
+Some commands live only there, with no key: *Raise priority* and *Lower
+priority* act on the selection or the cursor row, and *Show priority* hides
+everything less urgent than the level you pick. The `P` column shows the
+Azure DevOps priority, 1 being the most urgent.
 
 ### Everyday commands
 

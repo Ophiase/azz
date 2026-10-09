@@ -17,6 +17,7 @@ from .engine_config import EngineConfig
 from .runner import run_az_command_sync, run_az_void_sync
 from .work_item import ProjectNameFilter, WorkItem, WorkItemFilter, WorkItemState
 from .work_item.description_format import FORMATS_KEY, DescriptionFormat
+from .work_item.priority import PRIORITY_FIELD, Priority
 from .work_item_patch import WorkItemPatch
 
 logger = getLogger(__name__)
@@ -277,6 +278,18 @@ class Engine:
             self.set_timebox(item.id, timebox)
         item = replace(item, item_type=item_type, iteration_path=timebox.path)
         return item
+
+    def update_work_item_priority(
+        self, work_item_id: int, priority: Priority
+    ) -> None:
+        run_az_command_sync(
+            "boards",
+            "work-item",
+            "update",
+            f"--id={work_item_id}",
+            "--fields",
+            f"{PRIORITY_FIELD}={int(priority)}",
+        )
 
     def update_work_item_title(self, work_item_id: int, new_title: str) -> None:
         run_az_command_sync(

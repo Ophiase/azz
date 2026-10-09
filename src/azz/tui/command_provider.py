@@ -7,9 +7,10 @@ from .palette_entry import PaletteEntry
 
 class WorkItemCommands(Provider):
     """
-    Puts every key binding in the command palette.
+    Puts every key binding in the command palette, plus the app's
+    `PALETTE_COMMANDS`, which have no key at all.
 
-    Twelve of them are `show=False`, so the footer never mentions them. Read
+    Many bindings are `show=False`, so the footer never mentions them. Read
     from `BINDINGS` rather than restated, so a new key appears here on its own.
     """
 
@@ -30,7 +31,10 @@ class WorkItemCommands(Provider):
                 )
 
     def _entries(self) -> tuple[PaletteEntry, ...]:
-        return PaletteEntry.from_bindings(type(self.app).BINDINGS)
+        app_type = type(self.app)
+        keyless = getattr(app_type, "PALETTE_COMMANDS", ())
+        bound = PaletteEntry.from_bindings(app_type.BINDINGS)
+        return bound + PaletteEntry.without_keys(keyless)
 
     def _runner(self, entry: PaletteEntry) -> partial:
         return partial(self.app.run_action, entry.action)

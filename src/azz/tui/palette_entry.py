@@ -15,6 +15,9 @@ KEY_LABELS: Final = {
 }
 HIDDEN_ACTIONS: Final = frozenset({"escape_mode"})
 
+type PaletteCommand = tuple[str, str]
+"""(name shown in the palette, action to run)."""
+
 
 @dataclass(frozen=True, slots=True)
 class PaletteEntry:
@@ -46,6 +49,13 @@ class PaletteEntry:
                 action=action,
             )
             for action, bound in grouped.items()
+        )
+
+    @classmethod
+    def without_keys(cls, commands: Sequence[PaletteCommand]) -> tuple[Self, ...]:
+        """Actions reachable from the palette only."""
+        return tuple(
+            cls(name=name, keys=(), action=action) for name, action in commands
         )
 
 

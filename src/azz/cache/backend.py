@@ -8,6 +8,7 @@ from azz.core.engine_config import EngineConfig
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItem, WorkItemFilter, WorkItemState
 from azz.core.work_item.description_format import DescriptionFormat
+from azz.core.work_item.priority import Priority
 from azz.core.work_item.work_item_filter import IterationPathFilter, StateFilter
 from azz.core.work_item.work_item_type import WorkItemType
 
@@ -114,6 +115,11 @@ class CacheBackend:
         self, work_item_id: int, new_state: WorkItemState
     ) -> None:
         self._rewrite(work_item_id, {AzureField.STATE: new_state.value})
+
+    def update_work_item_priority(
+        self, work_item_id: int, priority: Priority
+    ) -> None:
+        self._rewrite(work_item_id, {AzureField.PRIORITY: int(priority)})
 
     def update_work_item_title(self, work_item_id: int, new_title: str) -> None:
         self._rewrite(work_item_id, {AzureField.TITLE: new_title})

@@ -57,7 +57,7 @@ src/azz/cache/
   backend.py      CacheBackend — WorkItemBackend over a CacheStore
   assignee_filter.py  AssigneeFilter — no assignee means the owner's
 src/azz/backend/
-  protocol.py     WorkItemBackend — the 12-method surface every caller uses
+  protocol.py     WorkItemBackend — the 13-method surface every caller uses
 src/azz/demo/     the fictional board; a CacheBackend over a fixture
 src/azz/tui/
   plan_state.py   PlanState — the plan's view of the on-screen items

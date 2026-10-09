@@ -14,6 +14,10 @@ class WorkItemState(StrEnum):
     def is_known(self) -> bool:
         return self != WorkItemState.UNKNOWN
 
+    @property
+    def initial(self) -> str:
+        return "?" if self is WorkItemState.UNKNOWN else self.value[0]
+
     @classmethod
     def from_str(cls, state: str | None) -> WorkItemState:
         if state is None:

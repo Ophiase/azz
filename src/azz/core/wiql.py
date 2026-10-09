@@ -19,6 +19,7 @@ WORK_ITEM_FIELDS: Final = ", ".join((
     "[System.IterationPath]",
     "[System.Parent]",
     "[System.ChangedDate]",
+    "[Microsoft.VSTS.Common.Priority]",
 ))
 
 
