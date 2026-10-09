@@ -1,5 +1,8 @@
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Final
+
+from .errors import IntentFileError
 
 PLAN_DIRECTORY_NAME: Final = ".azz"
 TASKS_DIRECTORY_NAME: Final = "tasks"
@@ -46,3 +49,21 @@ def intent_file_paths(plan_root: Path) -> tuple[Path, ...]:
     if not directory.is_dir():
         return ()
     return tuple(sorted(directory.glob("*.md")))
+
+
+def selected_intent_file_paths(
+    plan_root: Path, requested: Sequence[Path]
+) -> tuple[Path, ...]:
+    """The requested intent files, or every one when none is requested.
+
+    A path outside `.azz/tasks`, or missing, is an error rather than skipped:
+    a push meant for one file must never quietly widen or shrink.
+    """
+    if not requested:
+        return intent_file_paths(plan_root)
+    known = {path.resolve() for path in intent_file_paths(plan_root)}
+    reason = f"not an intent file in {tasks_directory(plan_root)}"
+    for path in requested:
+        if path.resolve() not in known:
+            raise IntentFileError(path, reason)
+    return tuple(dict.fromkeys(path.resolve() for path in requested))

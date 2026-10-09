@@ -5,6 +5,7 @@ from .discovery import (
     fetched_cache_directory,
     find_plan_root,
     intent_file_paths,
+    selected_intent_file_paths,
     tasks_directory,
 )
 from .errors import IntentFileError, PlanError
@@ -67,6 +68,7 @@ __all__ = [
     "parse_intent_files",
     "prunable_changes",
     "prune_intent_file",
+    "selected_intent_file_paths",
     "tasks_directory",
     "tracking_statuses",
 ]

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from azz.core.work_item import WorkItemState
 from azz.core.work_item.helper import Markdown
+from azz.core.work_item.priority import Priority
 from azz.core.work_item.work_item_type import WorkItemType
 
 
@@ -24,6 +25,7 @@ class LocalItem(BaseModel):
     item_type: WorkItemType | None = None
     parent: int | None = None
     iteration: str | None = None
+    priority: Priority | None = None
     description: Markdown | None = None
 
     @property

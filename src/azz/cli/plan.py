@@ -28,10 +28,10 @@ from azz.plan import (
     compute_changeset,
     find_plan_root,
     initialize_plan_directory,
-    intent_file_paths,
     parse_intent_files,
     prunable_changes,
     prune_intent_file,
+    selected_intent_file_paths,
     tasks_directory,
 )
 from azz.plan.renderer import (
@@ -65,6 +65,11 @@ ALL_STATES = frozenset({
 DEFAULT_FETCH_LIMIT = 20
 UNLIMITED = 0
 LIMIT_HELP = "How many of the most recently changed items to fetch (0 = all)."
+PATHS_HELP = "Intent files to act on; every file in .azz/tasks when omitted."
+
+IntentPaths = Annotated[
+    list[Path] | None, typer.Argument(help=PATHS_HELP, show_default=False)
+]
 
 
 def register(app: typer.Typer, engine: WorkItemBackend) -> None:
@@ -114,13 +119,13 @@ def register(app: typer.Typer, engine: WorkItemBackend) -> None:
         print(render_fetch_summary(outcomes))
         print("Write the files with [bold]azz plan pull[/bold]")
 
-    def status() -> None:
+    def status(paths: IntentPaths = None) -> None:
         """Compare .azz/tasks with .azz/cache. Offline: never calls the remote.
 
         Three-way, so local edits, remote edits and genuine conflicts are told
         apart. Run `azz plan fetch` to refresh what it compares against.
         """
-        _report_sync(_load_sync_report())
+        _report_sync(_load_sync_report(paths or ()))
 
     def pull(
         force: bool = typer.Option(
@@ -142,16 +147,18 @@ def register(app: typer.Typer, engine: WorkItemBackend) -> None:
         _pull(Puller(plan_root).pull(report, force=force))
 
     def push(
+        paths: IntentPaths = None,
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
         dry_run: bool = typer.Option(False, "--dry-run"),
     ) -> None:
         """Apply local intents to the remote, confirming each change.
 
-        Every applied change advances the merge base, so `azz plan status`
-        reports the file as in sync afterwards without another fetch.
+        Given paths, only those files are pushed, so a stale file elsewhere in
+        .azz/tasks cannot ride along. Every applied change advances the merge
+        base, so `azz plan status` reports the file as in sync afterwards.
         """
         plan_root = _require_plan_root()
-        changeset = _load_changeset(engine)
+        changeset = _load_changeset(engine, paths or ())
         if dry_run:
             _report(changeset)
             return
@@ -197,9 +204,11 @@ def _require_plan_root() -> Path:
     return plan_root
 
 
-def _load_local_items(plan_root: Path) -> tuple[LocalItem, ...]:
+def _load_local_items(
+    plan_root: Path, requested: Sequence[Path] = ()
+) -> tuple[LocalItem, ...]:
     try:
-        return parse_intent_files(intent_file_paths(plan_root))
+        return parse_intent_files(selected_intent_file_paths(plan_root, requested))
     except IntentFileError as error:
         print(f"[red]{error}[/red]")
         raise typer.Exit(code=1) from error
@@ -286,10 +295,14 @@ def _pull(outcomes: Sequence[PullOutcome]) -> None:
     print(render_pull_summary(outcomes))
 
 
-def _load_sync_report() -> SyncReport:
+def _load_sync_report(requested: Sequence[Path] = ()) -> SyncReport:
+    """Without `requested`, also the cached items no file holds yet; with it,
+    only those files, since every other item would look never pulled."""
     plan_root = _require_plan_root()
-    local_items = _load_local_items(plan_root)
+    local_items = _load_local_items(plan_root, requested)
     report = SyncInspector(plan_root).inspect(local_items)
+    if requested:
+        report = SyncReport(report.entries)
     if not local_items and not report.incoming:
         print(f"[yellow]No intent files in {tasks_directory(plan_root)}[/yellow]")
         print("Record the remote with [bold]azz plan fetch[/bold]")
@@ -299,16 +312,16 @@ def _load_sync_report() -> SyncReport:
     return report
 
 
-def _load_changeset(engine: WorkItemBackend) -> Changeset:
+def _load_changeset(
+    engine: WorkItemBackend, requested: Sequence[Path] = ()
+) -> Changeset:
     plan_root = _require_plan_root()
-    paths = intent_file_paths(plan_root)
-    if not paths:
+    local_items = _load_local_items(plan_root, requested)
+    if not local_items:
         print(f"[yellow]No intent files in {tasks_directory(plan_root)}[/yellow]")
         print("Record the remote with [bold]azz plan fetch[/bold]")
         raise typer.Exit()
-    return compute_changeset(
-        _load_local_items(plan_root), engine, Snapshots.for_plan(plan_root)
-    )
+    return compute_changeset(local_items, engine, Snapshots.for_plan(plan_root))
 
 
 def _apply(

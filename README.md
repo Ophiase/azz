@@ -184,6 +184,7 @@ want, delete the files you no longer need — a missing file never means
 azz plan status           # offline: .azz/tasks vs .azz/cache
 azz plan pull             # write the cache into .azz/tasks, fast-forward only
 azz plan push             # apply, confirming each change
+azz plan push a.md b.md   # apply only these files (status takes paths too)
 azz plan push --dry-run   # show what would be applied
 azz plan push --yes       # apply without per-change confirmation
 ```
@@ -277,14 +278,13 @@ block: the skill replaces it, and is not loaded on every conversation.
 | Profile | Claude can | Claude cannot |
 |---|---|---|
 | `planning` | read the remote, author intent files in `.azz/tasks/` | change Azure DevOps at all — every write command is denied |
-| `standard` | the above, plus `create`, `state`, `close`, `attach`, `set_timebox` behind a prompt | `edit`, `delete`, `plan push` |
+| `standard` | the above, plus `create`, `state`, `close`, `attach`, `set_timebox` and `plan push` behind a prompt | `edit`, `delete` |
 
 `planning` is the default and is less restrictive than it sounds: Claude can
 plan a whole batch of work as Markdown, you review it like a git diff and
-apply it yourself. `azz plan push` is never allow-listed in either profile —
-it confirms each change on a TTY, so an agent cannot usefully run it, and the
-only way to change that would be `--yes`, which removes the review step the
-plan engine exists to provide.
+apply it yourself. `azz plan push` is never allow-listed in either profile.
+Under `standard` the agent pushes its own files by path, after showing the
+dry-run: your permission prompt on that exact command is the review.
 
 See [docs/claude.md](docs/claude.md) for details.
 

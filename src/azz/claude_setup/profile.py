@@ -40,7 +40,8 @@ PROFILE_SUMMARIES: Final = {
     ),
     Profile.STANDARD: (
         "Everything in planning, plus the imperative write commands "
-        "(create, state, close, attach, set_timebox), each behind a prompt."
+        "(create, state, close, attach, set_timebox) and 'azz plan push' "
+        "on named files, each behind a prompt."
     ),
 }
 

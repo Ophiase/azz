@@ -13,6 +13,7 @@ UPDATABLE_FIELDS: Final = frozenset({
     "state",
     "parent",
     "iteration",
+    "priority",
 })
 
 
@@ -23,6 +24,7 @@ def field_diffs(local_item: LocalItem, remote_item: WorkItem) -> tuple[FieldDiff
         _scalar_diff("type", local_item.item_type, remote_item.item_type),
         _scalar_diff("parent", local_item.parent, remote_item.parent_id),
         _scalar_diff("iteration", local_item.iteration, iteration_name(remote_item)),
+        _scalar_diff("priority", local_item.priority, remote_item.priority),
         _description_diff(local_item.description, remote_item),
     )
     return tuple(diff for diff in candidates if diff is not None)

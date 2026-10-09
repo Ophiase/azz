@@ -13,6 +13,7 @@
       "Bash(azz plan fetch *)",
       "Bash(azz plan pull)",
       "Bash(azz plan status)",
+      "Bash(azz plan status *)",
       "Bash(azz plan prune --dry-run)",
       "Bash(azz pr create --dry-run*)"
     ],

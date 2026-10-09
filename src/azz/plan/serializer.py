@@ -21,6 +21,7 @@ def _frontmatter_lines(work_item: WorkItem) -> list[str]:
         ("state", work_item.state),
         ("parent", work_item.parent_id),
         ("iteration", iteration_name(work_item)),
+        ("priority", work_item.priority),
     )
     return [
         f"{key}: {quote_scalar(str(value))}"

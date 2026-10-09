@@ -5,6 +5,7 @@ from typing import Any, Final
 from pydantic import ValidationError
 
 from azz.core.work_item import WorkItemState
+from azz.core.work_item.priority import Priority
 from azz.core.work_item.work_item_type import WorkItemType
 
 from .errors import IntentFileError
@@ -22,6 +23,7 @@ KNOWN_FIELDS: Final = frozenset({
     "type",
     "parent",
     "iteration",
+    "priority",
     *RETIRED_FIELDS,
 })
 
@@ -50,6 +52,7 @@ def _build_local_item(path: Path, frontmatter: Frontmatter) -> LocalItem:
             item_type=_optional_type(metadata.get("type")),
             parent=metadata.get("parent"),
             iteration=_optional_text(metadata.get("iteration")),
+            priority=_optional_priority(metadata.get("priority")),
             description=frontmatter.body or None,
         )
     except (ValidationError, ValueError) as error:
@@ -68,6 +71,10 @@ def _optional_state(value: Any) -> WorkItemState | None:
 
 def _optional_type(value: Any) -> WorkItemType | None:
     return WorkItemType.from_user_input(str(value)) if value is not None else None
+
+
+def _optional_priority(value: Any) -> Priority | None:
+    return Priority(int(value)) if value is not None else None
 
 
 def _optional_text(value: Any) -> str | None:

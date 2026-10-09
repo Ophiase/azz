@@ -28,7 +28,8 @@ design change, not before a small fix:
 
 ```text
 src/azz/plan/
-  discovery.py    find_plan_root (walks up like git), tasks/cache paths
+  discovery.py    find_plan_root (walks up like git), tasks/cache paths,
+                  the files a command was given
   initializer.py  creates .azz/ + .azz/.gitignore containing `*`
   frontmatter.py  text → (metadata, body)
   parser.py       .md → LocalItem, rejects unknown keys
@@ -119,6 +120,13 @@ stale the cache is.
 - **Write-back includes the title**, because
   `create_work_item_helper` may prepend a `[project]` marker. Without it
   every freshly created item reports `DRIFT` on the next `status`.
+- **`push` and `status` take paths.** Given files, only those are read;
+  a path outside `.azz/tasks` is an error, never skipped, and `status`
+  drops the never-pulled list, which a subset would fill with every other
+  item.
+- **`priority` syncs like `state`**, except a merge base cached before
+  priorities were fetched holds none: that is not a remote move
+  (`snapshot_diff._priority_moved`), or every edited file would conflict.
 - **`type` is compared but never pushed** on an existing item. Azure DevOps
   treats it as a different operation and `Engine` does not expose it.
 - **`remote_changed_date` is retired.** The merge base replaced it. The

@@ -26,6 +26,10 @@
   - interactive: a `P` priority column, and palette commands to raise,
     lower and filter by priority
   - interactive: `/` searches only the rows on screen
+  - interactive: critical rows tinted red, rows below High faded
+  - `azz plan push|status <file>...` act on the named files only
+  - `priority: 1..4` in intent files, compared, pulled and pushed
+  - `standard` profile: the agent may push its own files, behind a prompt
 
 - **v0.1.2**
   - plan engine — write work items as Markdown in `.azz/tasks`, review, then

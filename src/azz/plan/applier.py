@@ -109,6 +109,8 @@ class Applier:
         if local_item.iteration is not None and wanted("iteration"):
             iteration = self._resolve_iteration(local_item.iteration)
             self._engine.set_timebox(work_item_id, iteration)
+        if local_item.priority is not None and wanted("priority"):
+            self._engine.update_work_item_priority(work_item_id, local_item.priority)
 
     def _resolve_iteration(self, name: str) -> Iteration:
         for timebox in self._engine.list_timeboxes():

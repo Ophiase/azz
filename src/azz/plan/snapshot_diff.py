@@ -11,7 +11,7 @@ def remote_advanced(base: WorkItem, later: WorkItem) -> bool:
     the plan does not track, and reporting those as a remote change would send
     the user to `azz plan pull` for a rewrite that changes nothing.
     """
-    return _signature(base) != _signature(later)
+    return _signature(base) != _signature(later) or _priority_moved(base, later)
 
 
 def _signature(work_item: WorkItem) -> tuple[str, ...]:
@@ -26,3 +26,9 @@ def _signature(work_item: WorkItem) -> tuple[str, ...]:
         iteration_name(work_item) or "",
         normalize_markdown(work_item.description),
     )
+
+
+def _priority_moved(base: WorkItem, later: WorkItem) -> bool:
+    """A base cached before priorities were fetched has none; that is not a
+    remote move, or every edited file would turn into a conflict."""
+    return base.priority is not None and base.priority != later.priority

@@ -36,6 +36,7 @@ state: Active
 type: Task
 parent: 100
 iteration: Sprint 42
+priority: 2
 ---
 
 The body is the work item description. Write the plan here.
@@ -46,7 +47,7 @@ The body is the work item description. Write the plan here.
 - A field absent from the frontmatter is never compared and never written. A
   file with only `title` will only ever change the title.
 - `state`: New, Active, Resolved, Closed. `type`: Task, Bug, User Story,
-  Feature, Epic.
+  Feature, Epic. `priority`: 1 (most urgent) to 4.
 - Deleting a file never deletes the work item.
 - Edit an existing item only through a file `azz plan pull` wrote. A file
   `status` reports as `NO BASE` has no merge base and is never pushed; taking
@@ -59,6 +60,11 @@ The body is the work item description. Write the plan here.
 ## Writing a good task
 
 - Title: imperative, no ticket prefix, no trailing period.
+- A task that is an action for the developer rather than code or
+  configuration (run a test, decide, ask someone) starts its title with
+  `[ACTION]` before its domain — `[ACTION] [STREAM] measure throughput
+  without the cache` — and gets `priority: 3`. Any other new task gets
+  `priority: 2`.
 - Body: what and why, and the shape of the work. A few lines, not an essay —
   it is read at a glance in a board UI.
 - Prefer several small tasks over one vague one, but do not invent scope the
@@ -74,16 +80,18 @@ Plan changed — 2 files in .azz/tasks:
   ~ 4103-buffer-late-events.md title, description
   + buffer-late-events.md      new task, will be created
 
-Review:  azz plan status
-Apply:   azz plan push
+Review:  azz plan status 4103-buffer-late-events.md buffer-late-events.md
+Apply:   azz plan push 4103-buffer-late-events.md buffer-late-events.md
 ```
 
 Rules for that block:
 
 - List every file you touched, `~` for edited and `+` for new.
-- Give the two commands verbatim, so they can be copied.
-- **Never claim you created, updated or pushed a work item.** Nothing reaches
-  Azure DevOps until the developer runs `azz plan push` themselves.
+- Give the two commands verbatim, with the files you touched as paths
+  (run from `.azz/tasks`, or give full paths), so they can be copied.
+- **Never claim you created, updated or pushed a work item** unless a push
+  you ran reported it. Otherwise nothing reaches Azure DevOps until the
+  developer runs `azz plan push`.
 
 ## Starting work on a task
 
