@@ -1,7 +1,13 @@
-import click
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Final
+
 from typer.core import TyperGroup
 
-ALIAS_SEPARATOR = " | "
+if TYPE_CHECKING:
+    import click
+
+ALIAS_SEPARATOR: Final = " | "
 
 
 class AliasGroup(TyperGroup):
