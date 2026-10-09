@@ -89,10 +89,10 @@ viable.
 ```text
 .azz/
   cache/
-    7651.json      ← raw az response, keyed by work item id
-    7695.json
+    4103.json      ← raw az response, keyed by work item id
+    4104.json
   tasks/
-    7651-langfuse-trace.md   ← working tree, human/agent owned
+    4103-buffer-late-events.md   ← working tree, human/agent owned
 ```
 
 The cache is machine-owned. Nothing in it is meant to be edited by hand,
@@ -147,9 +147,9 @@ for every tracked id, and the parser can ignore the stale key for a release.
 item's relationship to the plan, in a leading glyph column:
 
 ```text
-  ◆ 27/07  7441  44  Task  New   plan multi-prompt form-aware strategy
-  ● 27/07  7412  44  Epic  New   Document Analysis Improvement Propositions
-    27/07  7699  44  Task  New   [IR] Temporal/Modal Logic handling
+  ◆ 27/07  4103  12  Task  New   Buffer late events in the window operator
+  ● 27/07  4100  12  Epic  New   Streaming pipeline foundations
+    27/07  4102  12  Task  New   Better stream strategy for late events
 ```
 
 | Glyph | Meaning |

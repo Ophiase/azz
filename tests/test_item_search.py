@@ -21,7 +21,7 @@ def test_an_id_prefix_ranks_first(remote_item: RemoteFactory) -> None:
 
 def test_a_title_fragment_filters(remote_item: RemoteFactory) -> None:
     items = (
-        remote_item(item_id=1, name="Langfuse trace"),
-        remote_item(item_id=2, name="Minio switch"),
+        remote_item(item_id=1, name="Window operator"),
+        remote_item(item_id=2, name="Backpressure scheduler"),
     )
-    assert [item.id for item in ItemSearch(items).matches("langf")] == [1]
+    assert [item.id for item in ItemSearch(items).matches("windo")] == [1]

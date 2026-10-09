@@ -86,7 +86,7 @@ the list of files it changed and the two commands to run:
 
 ```text
 Plan changed — 2 files in .azz/tasks:
-  ~ 7651-langfuse-trace.md     title, description
+  ~ 4103-buffer-late-events.md title, description
   + buffer-late-events.md      new task, will be created
 
 Review:  azz plan status

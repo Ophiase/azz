@@ -7,7 +7,7 @@ from tests.conftest import RemoteFactory
 @pytest.mark.parametrize(
     ("iteration_path", "name"),
     [
-        ("Project\\TB 46", "[LotomateAIV3] - Monitoring elastic normalization"),
+        ("Project\\TB 46", "[TIDEPOOL] - Buffer late events"),
         (None, "Fix 2 bugs in 3 places"),
     ],
 )
