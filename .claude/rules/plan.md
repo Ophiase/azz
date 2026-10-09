@@ -46,7 +46,7 @@ src/azz/plan/
   fetcher.py      records one remote item in .azz/cache (never .azz/tasks)
   puller.py       fast-forwards .azz/cache into .azz/tasks
   inspector.py    the offline three-way comparison behind `status`
-  pruner.py       deletes local files of Closed, in-sync items
+  pruner.py       deletes local files of in-sync items PrunePolicy calls inactive
   renderer.py     all terminal output
   sync_renderer.py output for status and pull
   tracking.py     TrackingStatus glyphs, consumed by the TUI
@@ -102,8 +102,16 @@ stale the cache is.
   change the title. Do not introduce defaults that break this.
 - **A missing file never means delete.** Deletion is explicit
   (`azz delete`, or `azz plan prune` for local files only).
-- **`prune` never touches the remote.** Local files only, and only Closed
-  items that are in sync.
+- **`prune` never touches the remote.** Local files only, and only `NOOP`
+  (in sync) items `PrunePolicy` calls inactive: Closed always, and outside
+  the current timebox or not mine only when asked. `--not-mine` refuses to
+  run when it cannot tell who "me" is — an empty answer would make every
+  file somebody else's.
+- **`push` sends only the file's own edits.** `compute_changeset` keeps
+  the fields that differ from the merge base; a field that moved on the
+  remote alone is `BEHIND`, never pushed. Without a base nothing is pushed
+  (`NO_BASE`) and nothing calls the file "local" — `status`, the TUI and
+  `push` all say so. Only `pull --force` resolves it.
 - **`push` has no rollback.** Errors are reported per change and the loop
   continues — a partial apply must stay visible and recoverable.
 - **`item_id` matches files to remote items, not the filename.** A file keeps
@@ -118,9 +126,14 @@ stale the cache is.
   reintroduce a tool-managed timestamp in a human-readable file.
 - **`fetch` never writes `.azz/tasks/`.** It records the remote in the cache;
   `pull` writes the working tree. Collapsing them removes the merge base.
-- **Descriptions are lossy.** Remote is HTML, local is Markdown. Comparison
-  normalizes both (`normalize_markdown`) to survive the round-trip. Any
-  change here risks either phantom drift or silently unpushed edits.
+- **Descriptions carry a format.** `WorkItem.description_format` is read
+  from `multilineFieldsFormat`, which `az boards query` leaves empty, so it
+  falls back to "no HTML tag means Markdown". Always read
+  `markdown_description`: running Markdown through the HTML converter
+  escapes it. Comparison also accepts that escaped reading, so files pulled
+  before the format was known stay in sync. Pushes write Markdown through
+  `az rest` (`core/work_item_patch.py`); a title-only update keeps the
+  item's format, because Azure DevOps cannot turn Markdown back into HTML.
 
 ## Current state of the cache migration
 

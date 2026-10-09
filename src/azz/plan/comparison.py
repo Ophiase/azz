@@ -23,7 +23,7 @@ def field_diffs(local_item: LocalItem, remote_item: WorkItem) -> tuple[FieldDiff
         _scalar_diff("type", local_item.item_type, remote_item.item_type),
         _scalar_diff("parent", local_item.parent, remote_item.parent_id),
         _scalar_diff("iteration", local_item.iteration, iteration_name(remote_item)),
-        _description_diff(local_item.description, remote_item.description),
+        _description_diff(local_item.description, remote_item),
     )
     return tuple(diff for diff in candidates if diff is not None)
 
@@ -49,17 +49,24 @@ def _scalar_diff(
 
 
 def _description_diff(
-    local_description: Markdown | None, remote_description: Markdown | None
+    local_description: Markdown | None, remote_item: WorkItem
 ) -> FieldDiff | None:
     if local_description is None:
         return None
     local_text = normalize_markdown(local_description)
-    remote_text = normalize_markdown(html_to_markdown(remote_description))
-    if local_text == remote_text:
+    remote_text = normalize_markdown(remote_item.markdown_description)
+    if local_text in {remote_text, _legacy_reading(remote_item)}:
         return None
     return FieldDiff(
         "description", _line_count(local_text), _line_count(remote_text)
     )
+
+
+def _legacy_reading(remote_item: WorkItem) -> str:
+    """How a Markdown description read before its format was known: run
+    through the HTML converter, which escapes it. A file pulled back then
+    holds no edit, so it must not be reported as one."""
+    return normalize_markdown(html_to_markdown(remote_item.description))
 
 
 def _line_count(text: str) -> str:

@@ -7,6 +7,7 @@ from azz.core.editor import edit_work_item_in_editor
 from azz.core.engine_config import EngineConfig
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItem, WorkItemFilter, WorkItemState
+from azz.core.work_item.description_format import DescriptionFormat
 from azz.core.work_item.work_item_filter import IterationPathFilter, StateFilter
 from azz.core.work_item.work_item_type import WorkItemType
 
@@ -100,12 +101,13 @@ class CacheBackend:
     # --- Mutations ---
 
     def update_workitem(self, work_item: WorkItem) -> None:
-        self._rewrite(
-            work_item.id,
-            {
-                AzureField.TITLE: work_item.name,
-                AzureField.DESCRIPTION: work_item.description or None,
-            },
+        payload = self._require_payload(work_item.id).with_fields({
+            AzureField.TITLE: work_item.name,
+            AzureField.DESCRIPTION: work_item.description or None,
+        })
+        self._store.write_item(
+            payload.with_description_format(work_item.description_format)
+            .with_change_stamp(self._now())
         )
 
     def update_work_item_state(
@@ -135,7 +137,7 @@ class CacheBackend:
         payload = ItemPayload({
             "id": self._store.next_item_id(),
             "fields": self._new_item_fields(name, description, project, item_type),
-        })
+        }).with_description_format(DescriptionFormat.MARKDOWN)
         self._store.write_item(payload)
         return payload.to_work_item()
 

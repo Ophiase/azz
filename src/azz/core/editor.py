@@ -4,6 +4,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from .work_item import WorkItem
+from .work_item.description_format import DescriptionFormat
 
 
 def edit_in_editor(content: str, editor="nvim") -> str:
@@ -17,8 +18,10 @@ def edit_in_editor(content: str, editor="nvim") -> str:
 
 
 def edit_task_content_in_editor(task: WorkItem) -> WorkItem:
-    content = task.description or ""
-    return replace(task, description=edit_in_editor(content))
+    edited = edit_in_editor(task.markdown_description)
+    return replace(
+        task, description=edited, description_format=DescriptionFormat.MARKDOWN
+    )
 
 
 def edit_task_title_in_editor(task: WorkItem) -> WorkItem:

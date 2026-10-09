@@ -22,6 +22,7 @@ from azz.tui.filter_bar import FilterBar
 from azz.tui.plan_legend import PlanLegendScreen
 from azz.tui.plan_state import PlanState
 from azz.tui.rename_screen import RenameScreen
+from azz.tui.search_screen import SearchScreen
 from azz.tui.state_picker import StatePickerScreen
 from azz.tui.timebox_nav import adjacent_timebox
 from azz.tui.work_table import WorkItemTable
@@ -61,6 +62,7 @@ class AzzTUI(App[None]):
         Binding("j", "cursor_down", "Down", show=False),
         Binding("up", "cursor_up", "Up", show=False),
         Binding("down", "cursor_down", "Down", show=False),
+        Binding("slash", "search", "Search"),
         Binding("n", "new_task", "New"),
         Binding("N", "new_child_task", "New child", show=False),
         Binding("y", "yank_id", "Yank ID", show=False),
@@ -276,6 +278,21 @@ class AzzTUI(App[None]):
         item = self._cursor_item()
         return (item,) if item else ()
 
+    @work
+    async def action_search(self) -> None:
+        """Select the chosen item; open it when the filters hide its row."""
+        chosen_id = await self.push_screen_wait(SearchScreen(self._all_items))
+        if chosen_id is None:
+            return
+        row = next(
+            (index for index, item in enumerate(self._items) if item.id == chosen_id),
+            None,
+        )
+        if row is None:
+            await self._show_detail(chosen_id)
+            return
+        self.query_one(WorkItemTable).move_cursor(row=row)
+
     @on(DataTable.HeaderSelected)
     def on_header_selected(self, event: DataTable.HeaderSelected) -> None:
         # The table owns the index mapping, so its gutter columns cannot shift
@@ -345,9 +362,11 @@ class AzzTUI(App[None]):
     @work
     async def action_show_detail(self) -> None:
         item = self._cursor_item()
-        if item is None:
-            return
-        full_item = await asyncio.to_thread(self._engine.get_workitem, item.id)
+        if item is not None:
+            await self._show_detail(item.id)
+
+    async def _show_detail(self, work_item_id: int) -> None:
+        full_item = await asyncio.to_thread(self._engine.get_workitem, work_item_id)
         await self.push_screen_wait(DetailScreen(full_item))
 
     @work

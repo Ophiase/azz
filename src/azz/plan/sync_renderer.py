@@ -11,9 +11,10 @@ LABEL_WIDTH: Final = 10
 DIFF_INDENT: Final = " " * (LABEL_WIDTH + 4)
 DEGRADED_MARK: Final = "[magenta]?[/magenta]"
 DEGRADED_NOTICE: Final = (
-    "[magenta]? no merge base for {count} file(s) — the verdict is the two-way "
-    "one. Run [bold]azz plan fetch[/bold] then [bold]azz plan pull[/bold]."
-    "[/magenta]"
+    "[magenta]? incomplete cache for {count} file(s) — the verdict is the "
+    "two-way one. Run [bold]azz plan fetch[/bold] then [bold]azz plan pull[/bold]"
+    "; a [bold]NO BASE[/bold] file is only replaced by "
+    "[bold]azz plan pull --force[/bold].[/magenta]"
 )
 EMPTY_CACHE_NOTICE: Final = (
     "[yellow]The cache is empty, so nothing can be compared offline. "

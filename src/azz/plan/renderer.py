@@ -15,9 +15,14 @@ from .models import (
     LocalItem,
 )
 
-LABEL_WIDTH = 8
+LABEL_WIDTH = 10
 DIFF_INDENT = " " * (LABEL_WIDTH + 4)
 REMOTE_MOVED_NOTICE = "⚠ remote changed since the last fetch"
+BEHIND_NOTICE = "→ only the remote moved, not pushed — run azz plan pull"
+NO_BASE_NOTICE = (
+    "→ no base — remote differs, not pushed. "
+    "azz plan pull --force takes the remote"
+)
 PRUNE_LABEL = "PRUNE"
 PRUNE_STYLE = "red"
 
@@ -73,10 +78,11 @@ def render_summary(changeset: Changeset) -> str:
 def render_prune_candidate(change: Change) -> str:
     label = escape(f"[{PRUNE_LABEL}]".ljust(LABEL_WIDTH))
     location = escape(display_path(change.local_item.path))
+    state = change.remote_item.state if change.remote_item else "unknown"
     return (
         f"[{PRUNE_STYLE}]{label}[/{PRUNE_STYLE}] "
         f"{location}{_identifier(change)} "
-        f"[grey50]✓ closed and in sync — will delete the file[/grey50]"
+        f"[grey50]✓ in sync, {state} — will delete the file[/grey50]"
     )
 
 
@@ -141,5 +147,9 @@ def _summary(change: Change) -> str:
             return "[grey50]✓ in sync[/grey50]"
         case ChangeType.GONE:
             return "[red]→ item not found on remote[/red]"
+        case ChangeType.BEHIND:
+            return f"[cyan]{BEHIND_NOTICE}[/cyan]"
+        case ChangeType.NO_BASE:
+            return f"[magenta]{NO_BASE_NOTICE}[/magenta]"
         case ChangeType.UPDATE:
             return ""

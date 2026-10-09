@@ -6,6 +6,7 @@ from .fetch_outcome import FetchOutcome
 from .fetch_status import FetchStatus
 from .field_diff import FieldDiff
 from .local_item import LocalItem
+from .prune_policy import PrunePolicy
 from .pull_outcome import PullOutcome
 from .pull_status import PullStatus
 from .sync_entry import SyncEntry
@@ -21,6 +22,7 @@ __all__ = [
     "FetchStatus",
     "FieldDiff",
     "LocalItem",
+    "PrunePolicy",
     "PullOutcome",
     "PullStatus",
     "SyncEntry",

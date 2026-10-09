@@ -1,6 +1,8 @@
+import tempfile
 from collections.abc import Sequence
 from copy import replace
 from logging import getLogger
+from pathlib import Path
 from typing import Final
 
 from azz.core.iteration_path import IterationPath
@@ -14,6 +16,8 @@ from .editor import edit_work_item_in_editor
 from .engine_config import EngineConfig
 from .runner import run_az_command_sync, run_az_void_sync
 from .work_item import ProjectNameFilter, WorkItem, WorkItemFilter, WorkItemState
+from .work_item.description_format import DESCRIPTION_FIELD, DescriptionFormat
+from .work_item_patch import WorkItemPatch
 
 logger = getLogger(__name__)
 
@@ -101,6 +105,11 @@ class Engine:
         return work_item_factory(result)
 
     def update_workitem(self, work_item: WorkItem) -> None:
+        """Title and description, the description in the format the item
+        declares. Only Markdown needs `az rest`; HTML keeps `az boards`."""
+        if work_item.description_format is DescriptionFormat.MARKDOWN:
+            self._send_patch(_content_patch(work_item))
+            return
         run_az_command_sync(
             "boards",
             "work-item",
@@ -110,6 +119,27 @@ class Engine:
             f"System.Title={work_item.name}",
             f"System.Description={work_item.description or ''}",
         )
+
+    def _send_patch(self, patch: WorkItemPatch) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            body_path = Path(directory) / "patch.json"
+            patch.write_body(body_path)
+            run_az_command_sync(*patch.az_arguments(self.config.org_url, body_path))
+
+    def _store_description_as_markdown(
+        self, work_item_id: int, description: str
+    ) -> None:
+        """Best effort: the item already exists, so failing here would report a
+        created item as not created. It keeps the text `az` stored instead."""
+        patch = WorkItemPatch(
+            work_item_id, {DESCRIPTION_FIELD: description}, DescriptionFormat.MARKDOWN
+        )
+        try:
+            self._send_patch(patch)
+        except RuntimeError as error:
+            logger.warning(
+                "#%s: description not stored as Markdown: %s", work_item_id, error
+            )
 
     def update_work_item_state(
         self, work_item_id: int, new_state: WorkItemState
@@ -226,6 +256,8 @@ class Engine:
             raise RuntimeError(f"Unexpected result format from az command: {result}")
 
         item = WorkItem.from_fields(result)
+        if description:
+            self._store_description_as_markdown(item.id, description)
         if timebox.path:
             self.set_timebox(item.id, timebox)
         item = replace(item, item_type=item_type, iteration_path=timebox.path)
@@ -265,4 +297,15 @@ def _chunked(
 ) -> tuple[tuple[int, ...], ...]:
     return tuple(
         tuple(values[start : start + size]) for start in range(0, len(values), size)
+    )
+
+
+def _content_patch(work_item: WorkItem) -> WorkItemPatch:
+    return WorkItemPatch(
+        work_item.id,
+        {
+            "System.Title": work_item.name,
+            DESCRIPTION_FIELD: work_item.description or "",
+        },
+        work_item.description_format,
     )

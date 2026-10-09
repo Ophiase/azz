@@ -6,7 +6,8 @@ from pydantic.dataclasses import dataclass
 
 from azz.core.timebox import IterationPath
 
-from .helper import Markdown, html_to_markdown
+from .description_format import DescriptionFormat
+from .helper import Markdown
 from .work_item_state import STATE_COLORS, WorkItemState
 from .work_item_type import WorkItemType
 
@@ -24,6 +25,11 @@ class WorkItem:
     iteration_path: IterationPath | None = None
     parent_id: int | None = None
     changed_date: datetime | None = None
+    description_format: DescriptionFormat = DescriptionFormat.HTML
+
+    @property
+    def markdown_description(self) -> Markdown:
+        return self.description_format.to_markdown(self.description)
 
     @property
     def name_project(self) -> str | None:
@@ -66,9 +72,7 @@ class WorkItem:
 
     def render_details(self) -> str:
         assigned = self.assigned_to or "unassigned"
-        description = (
-            html_to_markdown(self.description) if self.description else "No description"
-        )
+        description = self.markdown_description or "No description"
 
         state_color = self.state_style()
 
@@ -115,6 +119,7 @@ class WorkItem:
             ),
             "parent_id": fields.get("System.Parent"),
             "changed_date": changed_date,
+            "description_format": DescriptionFormat.of_payload(data),
         }
 
     @classmethod

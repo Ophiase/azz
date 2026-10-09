@@ -4,6 +4,7 @@ from logging import getLogger
 from azz.backend import WorkItemBackend
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItem
+from azz.core.work_item.description_format import DescriptionFormat
 from azz.core.work_item.work_item_type import WorkItemType
 
 from .comparison import UPDATABLE_FIELDS
@@ -85,7 +86,11 @@ class Applier:
         if "title" in changed and local_item.title:
             target = replace(target, name=local_item.title)
         if "description" in changed and local_item.description is not None:
-            target = replace(target, description=local_item.description)
+            target = replace(
+                target,
+                description=local_item.description,
+                description_format=DescriptionFormat.MARKDOWN,
+            )
         self._engine.update_workitem(target)
 
     def _push_optional_fields(

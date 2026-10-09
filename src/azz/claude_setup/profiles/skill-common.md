@@ -48,6 +48,11 @@ The body is the work item description. Write the plan here.
 - `state`: New, Active, Resolved, Closed. `type`: Task, Bug, User Story,
   Feature, Epic.
 - Deleting a file never deletes the work item.
+- Edit an existing item only through a file `azz plan pull` wrote. A file
+  `status` reports as `NO BASE` has no merge base and is never pushed; taking
+  the remote with `azz plan pull --force` is the developer's call, not yours.
+- `push` sends only the fields the file changed since it was pulled. A field
+  that moved on the remote alone is left alone — `azz plan pull` brings it in.
 - A new work item cannot yet name a *new* parent — `parent` only accepts a
   real remote id. Say so rather than inventing a placeholder.
 

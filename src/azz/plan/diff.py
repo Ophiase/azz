@@ -4,7 +4,7 @@ from azz.backend import WorkItemBackend
 from azz.core.work_item import WorkItem
 
 from .comparison import field_diffs
-from .models import Change, Changeset, ChangeType, LocalItem
+from .models import Change, Changeset, ChangeType, FieldDiff, LocalItem
 from .resolver import RemoteResolver
 from .snapshot_diff import remote_advanced
 from .snapshots import Snapshots
@@ -13,15 +13,15 @@ from .snapshots import Snapshots
 def compute_changeset(
     local_items: Sequence[LocalItem],
     engine: WorkItemBackend,
-    snapshots: Snapshots | None = None,
+    snapshots: Snapshots,
 ) -> Changeset:
     """
     Compare every intent file against the remote.
 
     The remote lookups are batched, so the cost is one query rather than one
-    subprocess per tracked file. Given the cache, the merge base also says
-    whether the remote moved since the last sync — without it that question
-    goes unanswered rather than guessed.
+    subprocess per tracked file. The merge base decides which side moved: only
+    the fields the file changed since its base are pushed, so a field edited on
+    the remote alone is never reverted. Without a base, nothing is pushed.
     """
     remote_items = RemoteResolver(engine).resolve(_tracked_ids(local_items))
     return Changeset(
@@ -36,7 +36,7 @@ def _tracked_ids(local_items: Sequence[LocalItem]) -> tuple[int, ...]:
 def _compute_change(
     local_item: LocalItem,
     remote_items: Mapping[int, WorkItem],
-    snapshots: Snapshots | None,
+    snapshots: Snapshots,
 ) -> Change:
     if local_item.item_id is None:
         return Change(local_item, ChangeType.CREATE)
@@ -46,18 +46,31 @@ def _compute_change(
         return Change(local_item, ChangeType.GONE)
 
     diffs = field_diffs(local_item, remote_item)
-    change_type = ChangeType.UPDATE if diffs else ChangeType.NOOP
+    base = snapshots.base.read_item(remote_item.id)
+    if base is None:
+        change_type = ChangeType.NO_BASE if diffs else ChangeType.NOOP
+        return Change(local_item, change_type, diffs, remote_item)
+    return _against_base(local_item, remote_item, base, diffs)
+
+
+def _against_base(
+    local_item: LocalItem,
+    remote_item: WorkItem,
+    base: WorkItem,
+    diffs: Sequence[FieldDiff],
+) -> Change:
+    """Split the differences with the remote into the file's own edits, which
+    are pushed, and the remote's, which only `azz plan pull` may bring in."""
+    edited = {diff.field_name for diff in field_diffs(local_item, base)}
+    own_edits = tuple(diff for diff in diffs if diff.field_name in edited)
+    if own_edits:
+        change_type = ChangeType.UPDATE
+    else:
+        change_type = ChangeType.BEHIND if diffs else ChangeType.NOOP
     return Change(
         local_item,
         change_type,
-        diffs,
+        own_edits or tuple(diffs),
         remote_item,
-        remote_moved=_remote_moved(remote_item, snapshots),
+        remote_moved=remote_advanced(base, remote_item),
     )
-
-
-def _remote_moved(remote_item: WorkItem, snapshots: Snapshots | None) -> bool:
-    if snapshots is None:
-        return False
-    base = snapshots.base.read_item(remote_item.id)
-    return base is not None and remote_advanced(base, remote_item)

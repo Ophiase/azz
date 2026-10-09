@@ -10,6 +10,7 @@ from rich import print
 from azz.backend import WorkItemBackend
 from azz.core.editor import edit_in_editor
 from azz.core.work_item import WorkItemState
+from azz.core.work_item.description_format import DescriptionFormat
 from azz.core.work_item.work_item_type import WorkItemType
 
 
@@ -124,7 +125,11 @@ def register(app: typer.Typer, engine: WorkItemBackend) -> None:
         """Edit a work item's title or description in $EDITOR."""
         if description_file:
             item = engine.get_workitem(work_item_id)
-            updated = replace(item, description=Path(description_file).read_text())
+            updated = replace(
+                item,
+                description=Path(description_file).read_text(),
+                description_format=DescriptionFormat.MARKDOWN,
+            )
             engine.update_workitem(updated)
         else:
             engine.edit_work_item(work_item_id, edit_title=edit_title)

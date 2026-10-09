@@ -5,6 +5,11 @@ from enum import StrEnum
 from typing import Any, Self
 
 from azz.core.work_item import WorkItem
+from azz.core.work_item.description_format import (
+    DESCRIPTION_FIELD,
+    FORMATS_KEY,
+    DescriptionFormat,
+)
 from azz.core.work_item.work_item import work_item_factory
 
 
@@ -56,6 +61,13 @@ class ItemPayload:
                 fields[field.value] = value
         return type(self)({**self.data, "fields": fields})
 
+    def with_description_format(self, description_format: DescriptionFormat) -> Self:
+        formats = {
+            **(self.data.get(FORMATS_KEY) or {}),
+            DESCRIPTION_FIELD: description_format.value,
+        }
+        return type(self)({**self.data, FORMATS_KEY: formats})
+
     def with_change_stamp(self, moment: datetime) -> Self:
         return self.with_fields({AzureField.CHANGED_DATE: moment.isoformat()})
 
@@ -68,7 +80,8 @@ class ItemPayload:
             AzureField.PROJECT.value: work_item.project,
             AzureField.WORK_ITEM_TYPE.value: work_item.item_type.value,
         }
-        return cls({"id": work_item.id, "fields": required | _optional(work_item)})
+        payload = cls({"id": work_item.id, "fields": required | _optional(work_item)})
+        return payload.with_description_format(work_item.description_format)
 
 
 def _optional(work_item: WorkItem) -> dict[str, Any]:

@@ -6,6 +6,7 @@ from textual.binding import Binding, BindingType
 
 KEY_LABELS: Final = {
     "question_mark": "?",
+    "slash": "/",
     "plus": "+",
     "minus": "-",
     "escape": "Esc",

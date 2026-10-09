@@ -1,5 +1,4 @@
 from azz.core.work_item import WorkItem
-from azz.core.work_item.helper import html_to_markdown
 
 from .comparison import iteration_name, normalize_markdown
 
@@ -23,5 +22,5 @@ def _signature(work_item: WorkItem) -> tuple[str, ...]:
         str(work_item.item_type),
         str(work_item.parent_id or ""),
         iteration_name(work_item) or "",
-        normalize_markdown(html_to_markdown(work_item.description)),
+        normalize_markdown(work_item.markdown_description),
     )

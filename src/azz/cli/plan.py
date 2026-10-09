@@ -9,6 +9,7 @@ from rich import print
 
 from azz.backend import WorkItemBackend
 from azz.core.work_item import WorkItem, WorkItemState
+from azz.core.work_item.work_item import Username
 from azz.plan import (
     Applier,
     Change,
@@ -17,6 +18,7 @@ from azz.plan import (
     Fetcher,
     IntentFileError,
     LocalItem,
+    PrunePolicy,
     Puller,
     PullOutcome,
     Snapshots,
@@ -33,6 +35,7 @@ from azz.plan import (
     tasks_directory,
 )
 from azz.plan.renderer import (
+    render_change,
     render_changeset,
     render_fetch_outcome,
     render_fetch_summary,
@@ -157,14 +160,25 @@ def register(app: typer.Typer, engine: WorkItemBackend) -> None:
     def prune(
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
         dry_run: bool = typer.Option(False, "--dry-run"),
+        outside_timebox: bool = typer.Option(
+            False, "--outside-timebox", "-t",
+            help="Also prune items that are not in the current timebox.",
+        ),
+        not_mine: bool = typer.Option(
+            False, "--not-mine", "-m",
+            help="Also prune items that are not assigned to me.",
+        ),
     ) -> None:
-        """Delete the local files of Closed items that are in sync.
+        """Delete the local files of in-sync items no longer being worked on.
 
-        Local only: the Azure DevOps work items are never touched. Files with
-        drift, files without an item_id, and files whose item is gone from the
-        remote are always kept.
+        Closed items always qualify; `--outside-timebox` and `--not-mine` widen
+        that, so .azz/tasks holds only the current work. Local only: the Azure
+        DevOps work items are never touched. Files with drift, files without
+        an item_id, and files whose item is gone from the remote are kept.
         """
-        _prune(prunable_changes(_load_changeset(engine)), assume_yes, dry_run)
+        policy = _prune_policy(engine, outside_timebox, not_mine)
+        candidates = prunable_changes(_load_changeset(engine), policy)
+        _prune(candidates, assume_yes, dry_run)
 
     plan_app.command("init")(init)
     plan_app.command("fetch")(fetch)
@@ -197,6 +211,34 @@ def _cache_timeboxes(fetcher: Fetcher, engine: WorkItemBackend) -> None:
         fetcher.record_timeboxes(engine.list_timeboxes())
     except (RuntimeError, OSError) as error:
         print(f"[yellow]Could not cache the timebox list: {error}[/yellow]")
+
+
+def _prune_policy(
+    engine: WorkItemBackend, outside_timebox: bool, not_mine: bool
+) -> PrunePolicy:
+    try:
+        return PrunePolicy(
+            current_timebox=(
+                engine.get_current_timebox().path if outside_timebox else None
+            ),
+            owner=_my_display_name(engine) if not_mine else None,
+        )
+    except RuntimeError as error:
+        print(f"[red]{error}[/red]")
+        raise typer.Exit(code=1) from error
+
+
+def _my_display_name(engine: WorkItemBackend) -> Username:
+    """Read off my own items. With none to read it from, every file would look
+    like somebody else's, so that is an error rather than an empty answer."""
+    mine = engine.list_work_items(states=ALL_STATES, project_filter=False)
+    names = {item.assigned_to for item in mine if item.assigned_to}
+    if len(names) != 1:
+        raise RuntimeError(
+            "Cannot tell who 'me' is from the items assigned to you — "
+            "refusing to prune by assignee"
+        )
+    return names.pop()
 
 
 def _select_remote_items(
@@ -275,6 +317,8 @@ def _apply(
     snapshots: Snapshots,
     assume_yes: bool,
 ) -> None:
+    for change in changeset.refused:
+        print(render_change(change))
     applicable = changeset.applicable
     if not applicable:
         print("[green]Nothing to resolve[/green]")

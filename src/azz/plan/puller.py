@@ -10,10 +10,11 @@ from .slug import intent_file_name
 from .snapshots import Snapshots
 
 CONFLICT_REASON: Final = "both sides changed — resolve by hand, or --force"
-NO_BASE_REASON: Final = "no merge base — --force takes the remote"
+NO_BASE_REASON: Final = "no merge base — azz plan pull --force takes the remote"
 NOT_CACHED_REASON: Final = "not in the cache — run azz plan fetch"
 FORCED_REASON: Final = "local changes overwritten"
 BASE_ADOPTED_REASON: Final = "merge base recorded"
+BASE_TAKEN_REASON: Final = "remote taken, merge base recorded"
 
 
 class Puller:
@@ -40,8 +41,10 @@ class Puller:
                 return self._fast_forward(entry)
             case SyncState.CONFLICT:
                 return self._resolve(entry, force)
-            case SyncState.LOCAL_ONLY if entry.degraded:
-                return self._resolve(entry, force, NO_BASE_REASON)
+            case SyncState.NO_BASE if force:
+                return self._fast_forward(entry, BASE_TAKEN_REASON)
+            case SyncState.NO_BASE:
+                return _outcome(entry, PullStatus.SKIPPED, NO_BASE_REASON)
             case SyncState.IN_SYNC if entry.degraded:
                 return self._adopt(entry)
             case SyncState.UNKNOWN:
@@ -56,16 +59,9 @@ class Puller:
         self._write(entry.local_item.path, fetched)
         return _outcome(entry, PullStatus.FAST_FORWARDED, reason)
 
-    def _resolve(
-        self, entry: SyncEntry, force: bool, refusal: str = CONFLICT_REASON
-    ) -> PullOutcome:
+    def _resolve(self, entry: SyncEntry, force: bool) -> PullOutcome:
         if not force:
-            status = (
-                PullStatus.REFUSED
-                if entry.state is SyncState.CONFLICT
-                else PullStatus.SKIPPED
-            )
-            return _outcome(entry, status, refusal)
+            return _outcome(entry, PullStatus.REFUSED, CONFLICT_REASON)
         return self._fast_forward(entry, FORCED_REASON)
 
     def _adopt(self, entry: SyncEntry) -> PullOutcome:

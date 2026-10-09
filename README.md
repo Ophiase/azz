@@ -81,6 +81,7 @@ The keys you need to start:
 | `+` / `-` | move to the next / previous timebox |
 | `a` | show Closed · `A` other people's · `c` current timebox only |
 | `v` | visual mode, to act on several items at once |
+| `/` | fuzzy-search ids and titles · `Enter` jumps to the item |
 | `b` | copy a git branch name for the selected item |
 | `q` | quit |
 
@@ -141,6 +142,11 @@ iteration: Sprint 42
 The body of the file is the work item description.
 ```
 
+Descriptions are stored on Azure DevOps as Markdown, not HTML: a pushed or
+edited description switches the field to Markdown, which Azure DevOps
+cannot turn back into HTML. That write goes through `az rest`, so it needs
+`az login` rather than a PAT alone.
+
 Omit `item_id` to mark the file as a new task — it is written back into the
 file once the item is created. Fields absent from the frontmatter are never
 compared and never written, so a file containing only `title` will only ever
@@ -167,6 +173,12 @@ edited and refusing the ones where both sides moved. That cached copy is the
 merge base, which is what lets `status` run fully offline and tell a remote
 edit apart from one of yours instead of guessing.
 
+`push` sends only the fields a file changed since it was pulled, so a field
+moved on the board — an iteration, a Closed state — is never reverted. A
+file with no merge base (from before the cache existed) is reported
+`NO BASE` and never pushed: `azz plan pull --force` takes the remote and
+records the base.
+
 Fetch options: `-l/--limit N` (default 20, `0` for no limit), `-a/--all` to
 include Closed items, `-c/--current-timebox`. `-a -l 0` pulls the same set as
 `azz list -a` — every work item assigned to you in the configured projects,
@@ -178,11 +190,14 @@ Once the archive is on disk, prune it back to the work in flight:
 azz plan prune --dry-run   # list what would go
 azz plan prune             # delete, after one confirmation
 azz plan prune --yes       # delete without confirming
+azz plan prune -t -m       # also outside the current timebox / not mine
 ```
 
-`prune` removes a file only when the work item is Closed on the remote *and*
-the file is in sync with it. Local drift, files with no `item_id`, and files
-whose item is gone from the remote are always kept.
+`prune` removes a file only when the file is in sync with its work item and
+the item is no longer worked on: Closed, and with `-t/--outside-timebox` or
+`-m/--not-mine`, also outside the current timebox or assigned to someone
+else. Local drift, files with no `item_id`, and files whose item is gone
+from the remote are always kept.
 
 `.azz/` is gitignored by default. A missing file never means "delete" —
 `prune` only ever touches local files, and deletion on Azure DevOps stays
