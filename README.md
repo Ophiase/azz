@@ -71,6 +71,11 @@ This is how you will actually use azz day to day. One command:
 azz interactive     # or: azz i
 ```
 
+Your work items open as a tree — tasks under their user story, stories under
+their epic — split into one band per priority, most urgent on top. A parent
+outside your filters (another timebox, say) still shows, dimmed, so a task
+never loses its context. A fine underline closes each band.
+
 The keys you need to start:
 
 | Key | |
@@ -81,6 +86,8 @@ The keys you need to start:
 | `+` / `-` | move to the next / previous timebox |
 | `a` | show Closed · `A` other people's · `c` current timebox only |
 | `v` | visual mode, to act on several items at once |
+| `E` | tree view, on by default — filtered-out parents are dimmed |
+| `Space` | fold or unfold the subtree under the cursor |
 | `/` | fuzzy-search the rows on screen · `Enter` jumps to the item |
 | `b` | copy a git branch name for the selected item |
 | `q` | quit |
@@ -90,8 +97,10 @@ keys not shown in the footer. Reach for it whenever you are not sure.
 
 Some commands live only there, with no key: *Raise priority* and *Lower
 priority* act on the selection or the cursor row, and *Show priority* hides
-everything less urgent than the level you pick. The `P` column shows the
-Azure DevOps priority, 1 being the most urgent.
+everything less urgent than the level you pick. *Split by priority* (on by
+default) groups the rows into one band per priority, keeping the sort inside
+each band; *Fold all* and *Unfold all* act on the whole tree. The `P` column
+shows the Azure DevOps priority, 1 being the most urgent.
 
 ### Everyday commands
 

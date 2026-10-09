@@ -20,6 +20,7 @@ REPOSITORY: Final = Path(__file__).resolve().parent.parent
 TERMINAL_SIZE: Final = (124, 30)
 GIF_WIDTH: Final = 1100
 FRAME_DELAY_CENTISECONDS: Final = 15
+FOLDED_STORY_ID: Final = 4102
 DRIFT_NOTE: Final = (
     "\n\n## Plan\n\n- drain the late-event buffer first\n- then emit the watermark\n"
 )
@@ -92,8 +93,23 @@ class FrameRecorder:
         await self._capture(app, pilot, hold=10)
         await pilot.press("escape")
         await self._capture(app, pilot, hold=2)
+        await self._walk_to(app, pilot, FOLDED_STORY_ID)
+        await pilot.press("space")
+        await self._capture(app, pilot, hold=8)
+        await pilot.press("space")
+        await self._capture(app, pilot, hold=3)
         await pilot.press("a")
         await self._capture(app, pilot, hold=8)
+
+    async def _walk_to(self, app, pilot, item_id: int) -> None:
+        """One `j` per frame, so the cursor is seen travelling down the tree."""
+        for _ in range(len(app._items)):
+            cursor_item = app._cursor_item()
+            if cursor_item is not None and cursor_item.id == item_id:
+                return
+            await pilot.press("j")
+            await self._capture(app, pilot)
+        raise RuntimeError(f"work item {item_id} is not on screen")
 
     async def _capture(self, app, pilot, hold: int = 1) -> None:
         """`hold` repeats the frame, which is how a still moment is timed."""

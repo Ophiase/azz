@@ -26,7 +26,8 @@
       "state": "Active",
       "changed_days_ago": 9,
       "timebox_number": 12,
-      "description": "Umbrella epic for the 0.4 pipeline rewrite. Fictional data used for the azz demo board."
+      "description": "Umbrella epic for the 0.4 pipeline rewrite. Fictional data used for the azz demo board.",
+      "priority": 2
     },
     {
       "id": 4101,
@@ -36,7 +37,8 @@
       "changed_days_ago": 6,
       "timebox_number": 12,
       "parent_id": 4100,
-      "description": "Scheduler slows producers instead of dropping records when a sink lags behind."
+      "description": "Scheduler slows producers instead of dropping records when a sink lags behind.",
+      "priority": 2
     },
     {
       "id": 4102,
@@ -46,7 +48,8 @@
       "changed_days_ago": 4,
       "timebox_number": 12,
       "parent_id": 4101,
-      "description": "As an operator I want late events folded into the right window instead of silently dropped."
+      "description": "As an operator I want late events folded into the right window instead of silently dropped.",
+      "priority": 2
     },
     {
       "id": 4103,
@@ -55,7 +58,8 @@
       "state": "New",
       "changed_days_ago": 2,
       "timebox_number": 12,
-      "parent_id": 4102
+      "parent_id": 4102,
+      "priority": 2
     },
     {
       "id": 4104,
@@ -64,7 +68,8 @@
       "state": "Active",
       "changed_days_ago": 1,
       "timebox_number": 12,
-      "parent_id": 4102
+      "parent_id": 4102,
+      "priority": 3
     },
     {
       "id": 4105,
@@ -73,7 +78,8 @@
       "state": "Active",
       "changed_days_ago": 0.5,
       "timebox_number": 12,
-      "description": "Reproduced with a three-level array. The tail element is consumed by the closing-bracket lookahead."
+      "description": "Reproduced with a three-level array. The tail element is consumed by the closing-bracket lookahead.",
+      "priority": 1
     },
     {
       "id": 4106,
@@ -81,7 +87,8 @@
       "item_type": "Bug",
       "state": "New",
       "changed_days_ago": 3,
-      "timebox_number": 12
+      "timebox_number": 12,
+      "priority": 2
     },
     {
       "id": 4107,
@@ -89,7 +96,8 @@
       "item_type": "Task",
       "state": "Resolved",
       "changed_days_ago": 5,
-      "timebox_number": 12
+      "timebox_number": 12,
+      "priority": 3
     },
     {
       "id": 4108,
@@ -98,7 +106,8 @@
       "state": "Active",
       "changed_days_ago": 8,
       "timebox_number": 13,
-      "description": "One endpoint, one JSON document, no extra scrape target to configure."
+      "description": "One endpoint, one JSON document, no extra scrape target to configure.",
+      "priority": 3
     },
     {
       "id": 4109,
@@ -106,7 +115,8 @@
       "item_type": "Task",
       "state": "Closed",
       "changed_days_ago": 17,
-      "timebox_number": 11
+      "timebox_number": 11,
+      "priority": 4
     },
     {
       "id": 4110,
@@ -114,7 +124,8 @@
       "item_type": "Task",
       "state": "New",
       "changed_days_ago": 12,
-      "timebox_number": 13
+      "timebox_number": 13,
+      "priority": 4
     },
     {
       "id": 4111,
@@ -122,7 +133,8 @@
       "item_type": "Bug",
       "state": "Resolved",
       "changed_days_ago": 19,
-      "timebox_number": 11
+      "timebox_number": 11,
+      "priority": 2
     },
     {
       "id": 4112,
@@ -131,7 +143,8 @@
       "state": "New",
       "changed_days_ago": 11,
       "timebox_number": 13,
-      "description": "Third-party sinks register through an entry point instead of a hardcoded table."
+      "description": "Third-party sinks register through an entry point instead of a hardcoded table.",
+      "priority": 3
     },
     {
       "id": 4113,
@@ -139,7 +152,8 @@
       "item_type": "Task",
       "state": "Closed",
       "changed_days_ago": 24,
-      "timebox_number": 11
+      "timebox_number": 11,
+      "priority": 4
     },
     {
       "id": 4114,
@@ -148,7 +162,8 @@
       "state": "Active",
       "changed_days_ago": 7,
       "timebox_number": 12,
-      "assignee": "Bram Vitel"
+      "assignee": "Bram Vitel",
+      "priority": 3
     },
     {
       "id": 4115,
@@ -157,7 +172,8 @@
       "state": "New",
       "changed_days_ago": 14,
       "timebox_number": 13,
-      "assignee": "Noor Halvard"
+      "assignee": "Noor Halvard",
+      "priority": 4
     },
     {
       "id": 4116,
@@ -165,7 +181,8 @@
       "item_type": "Task",
       "state": "Active",
       "changed_days_ago": 1.5,
-      "timebox_number": 12
+      "timebox_number": 12,
+      "priority": 3
     }
   ]
 }

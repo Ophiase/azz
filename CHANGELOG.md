@@ -27,6 +27,12 @@
     lower and filter by priority
   - interactive: `/` searches only the rows on screen
   - interactive: critical rows tinted red, rows below High faded
+  - interactive: `TB`, `P` and `ID` columns moved to the right of the name
+  - interactive: `E` tree view, nesting items under their parent, and
+    showing a parent filtered out (e.g. another timebox) dimmed
+  - interactive: *Split by priority* palette command, bands keep the sort
+  - interactive: tree and priority split on by default; `Space` folds a
+    subtree, *Fold all* / *Unfold all* in the palette
   - `azz plan push|status <file>...` act on the named files only
   - `priority: 1..4` in intent files, compared, pulled and pushed
   - `standard` profile: the agent may push its own files, behind a prompt

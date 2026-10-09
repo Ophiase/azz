@@ -25,6 +25,7 @@ from azz.tui.plan_state import PlanState
 from azz.tui.priority_picker import PriorityPickerScreen
 from azz.tui.priority_threshold import PriorityThreshold
 from azz.tui.rename_screen import RenameScreen
+from azz.tui.rows import DisplayRow, RowLayout, fold_target, parent_ids
 from azz.tui.search_screen import SearchScreen
 from azz.tui.state_picker import StatePickerScreen
 from azz.tui.timebox_nav import adjacent_timebox
@@ -80,6 +81,8 @@ class AzzTUI(App[None]):
         Binding("o", "toggle_others", "Others", show=False),
         Binding("c", "toggle_current_timebox", "[c]Current"),
         Binding("p", "toggle_project", "[p]Project"),
+        Binding("E", "toggle_tree", "[E]Tree", show=False),
+        Binding("space", "toggle_fold", "Fold", show=False),
         Binding("v", "toggle_visual", "Visual", show=False),
         Binding("g", "cursor_top", "Top", show=False),
         Binding("G", "cursor_bottom", "Bottom", show=False),
@@ -95,13 +98,18 @@ class AzzTUI(App[None]):
         ("Raise priority", "raise_priority"),
         ("Lower priority", "lower_priority"),
         ("Show priority", "priority_threshold"),
+        ("Split by priority", "toggle_priority_split"),
+        ("Fold all", "fold_all"),
+        ("Unfold all", "unfold_all"),
     )
 
     def __init__(self, backend: WorkItemBackend) -> None:
         super().__init__()
         self._engine = backend
         self._all_items: tuple[WorkItem, ...] = ()
+        self._rows: tuple[DisplayRow, ...] = ()
         self._items: tuple[WorkItem, ...] = ()
+        self._row_layout = RowLayout()
         self._timeboxes: tuple[Iteration, ...] = ()
         self._include_closed: bool = False
         self._show_others: bool = False
@@ -168,11 +176,9 @@ class AzzTUI(App[None]):
                     if item.iteration_path
                     and item.iteration_path.optional_number == current_number
                 )
-        self._items = tuple(sorted(
-            items,
-            key=self._sort_key,
-            reverse=self._sort_reverse,
-        ))
+        ordered = sorted(items, key=self._sort_key, reverse=self._sort_reverse)
+        self._rows = self._row_layout.arrange(ordered, self._all_items)
+        self._items = tuple(row.item for row in self._rows)
         self._refresh_view(preserve_cursor=preserve_cursor)
 
     def _sort_key(self, item: WorkItem) -> Any:
@@ -201,7 +207,7 @@ class AzzTUI(App[None]):
 
     def _refresh_view(self, *, preserve_cursor: bool = False) -> None:
         self.query_one(WorkItemTable).populate(
-            self._items,
+            self._rows,
             preserve_cursor=preserve_cursor,
             show_project=self._show_project,
             selected_ids=self._selected_ids,
@@ -215,6 +221,7 @@ class AzzTUI(App[None]):
             current_timebox_only=self._current_timebox_only,
             show_project=self._show_project,
             priority=self._priority_threshold.label,
+            layout=self._row_layout,
             item_count=len(self._items),
             visual_mode=self._visual_mode,
             selection_count=len(self._selected_ids),
@@ -334,6 +341,38 @@ class AzzTUI(App[None]):
     def action_toggle_project(self) -> None:
         self._show_project = not self._show_project
         self._refresh_view()
+
+    def action_toggle_tree(self) -> None:
+        self._row_layout = self._row_layout.with_tree_toggled()
+        self._apply_filters()
+
+    def action_toggle_priority_split(self) -> None:
+        self._row_layout = self._row_layout.with_split_toggled()
+        self._apply_filters()
+
+    def action_toggle_fold(self) -> None:
+        """Folds the cursor row, or the parent of a row without children."""
+        cursor_row = self.query_one(WorkItemTable).cursor_row
+        if not self._row_layout.tree or not 0 <= cursor_row < len(self._rows):
+            return
+        target_id = fold_target(self._rows, cursor_row)
+        if target_id is None:
+            return
+        self._row_layout = self._row_layout.with_fold_toggled(target_id)
+        self._apply_filters(preserve_cursor=True)
+        target_row = next(
+            index for index, item in enumerate(self._items) if item.id == target_id
+        )
+        self.query_one(WorkItemTable).move_cursor(row=target_row)
+
+    def action_fold_all(self) -> None:
+        folded = self._row_layout.folded | parent_ids(self._rows)
+        self._row_layout = self._row_layout.with_folded(folded)
+        self._apply_filters()
+
+    def action_unfold_all(self) -> None:
+        self._row_layout = self._row_layout.with_folded(frozenset())
+        self._apply_filters(preserve_cursor=True)
 
     # --- Filter toggles (server-side — refetch needed) ---
 
