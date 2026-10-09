@@ -4,12 +4,15 @@ from azz.tui.rows import RowLayout, fold_target
 
 
 def _item(
-    item_id: int, parent_id: int | None = None, priority: Priority | None = None
+    item_id: int,
+    parent_id: int | None = None,
+    priority: Priority | None = None,
+    state: WorkItemState = WorkItemState.NEW,
 ) -> WorkItem:
     return WorkItem(
         id=item_id,
         name=f"item {item_id}",
-        state=WorkItemState.NEW,
+        state=state,
         project="Project",
         parent_id=parent_id,
         priority=priority,
@@ -103,3 +106,20 @@ def test_a_fold_on_a_leaf_targets_its_parent() -> None:
 def test_a_lone_top_level_row_has_nothing_to_fold() -> None:
     items = (_item(1),)
     assert fold_target(RowLayout().arrange(items, pool=items), 0) is None
+
+
+def test_closed_groups_sink_below_every_priority_band() -> None:
+    closed = WorkItemState.CLOSED
+    items = (
+        _item(1, priority=Priority.CRITICAL, state=closed),
+        _item(2, priority=Priority.LOW),
+        _item(3, parent_id=2, state=closed),
+        _item(4, priority=Priority.HIGH, state=closed),
+    )
+    rows = RowLayout().arrange(items, pool=items)
+    assert [(row.item.id, row.closes_band) for row in rows] == [
+        (2, False),
+        (3, True),
+        (1, False),
+        (4, False),
+    ]

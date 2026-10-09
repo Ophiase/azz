@@ -33,6 +33,8 @@
   - interactive: *Split by priority* palette command, bands keep the sort
   - interactive: tree and priority split on by default; `Space` folds a
     subtree, *Fold all* / *Unfold all* in the palette
+  - interactive: Resolved and Closed rows fade out, and Closed groups
+    with nothing open sink into a last band
   - `azz plan push|status <file>...` act on the named files only
   - `priority: 1..4` in intent files, compared, pulled and pushed
   - `standard` profile: the agent may push its own files, behind a prompt
