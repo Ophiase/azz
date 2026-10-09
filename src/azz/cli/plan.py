@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 from rich import print
 
-from azz.core.engine import Engine
+from azz.backend import WorkItemBackend
 from azz.core.work_item import WorkItem, WorkItemState
 from azz.plan import (
     Applier,
@@ -64,7 +64,7 @@ UNLIMITED = 0
 LIMIT_HELP = "How many of the most recently changed items to fetch (0 = all)."
 
 
-def register(app: typer.Typer, engine: Engine) -> None:
+def register(app: typer.Typer, engine: WorkItemBackend) -> None:
     plan_app = typer.Typer(
         help="Manage local task intents in .azz/tasks and sync them to the remote."
     )
@@ -191,7 +191,7 @@ def _load_local_items(plan_root: Path) -> tuple[LocalItem, ...]:
         raise typer.Exit(code=1) from error
 
 
-def _cache_timeboxes(fetcher: Fetcher, engine: Engine) -> None:
+def _cache_timeboxes(fetcher: Fetcher, engine: WorkItemBackend) -> None:
     """Best effort — a plan fetch is about work items, not iterations."""
     try:
         fetcher.record_timeboxes(engine.list_timeboxes())
@@ -200,7 +200,7 @@ def _cache_timeboxes(fetcher: Fetcher, engine: Engine) -> None:
 
 
 def _select_remote_items(
-    engine: Engine,
+    engine: WorkItemBackend,
     work_item_ids: Sequence[int] | None,
     limit: int,
     include_closed: bool,
@@ -257,7 +257,7 @@ def _load_sync_report() -> SyncReport:
     return report
 
 
-def _load_changeset(engine: Engine) -> Changeset:
+def _load_changeset(engine: WorkItemBackend) -> Changeset:
     plan_root = _require_plan_root()
     paths = intent_file_paths(plan_root)
     if not paths:
@@ -271,7 +271,7 @@ def _load_changeset(engine: Engine) -> Changeset:
 
 def _apply(
     changeset: Changeset,
-    engine: Engine,
+    engine: WorkItemBackend,
     snapshots: Snapshots,
     assume_yes: bool,
 ) -> None:

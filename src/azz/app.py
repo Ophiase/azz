@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import typer
 
 from azz.backend import WorkItemBackend
+from azz.cli.alias_group import AliasGroup
 from azz.core.engine import Engine
 from azz.core.engine_config import EngineConfig
 from azz.demo import DEMO_FLAG, DemoSession, demo_requested
@@ -32,7 +33,7 @@ class AzzApp:
         self._backend: WorkItemBackend = (
             self._demo.backend if self._demo else Engine(EngineConfig.from_env())
         )
-        self._app = typer.Typer(invoke_without_command=True)
+        self._app = typer.Typer(cls=AliasGroup, invoke_without_command=True)
         self._register_callback()
         self._register_commands()
 
@@ -62,9 +63,6 @@ class AzzApp:
             work_items,
         )
 
-        # Those modules still annotate `Engine`, yet each one only ever calls
-        # the `WorkItemBackend` surface, so a cache-backed run is safe.
-        engine = cast(Engine, self._backend)
         for module in [
             work_items,
             timebox,
@@ -73,7 +71,7 @@ class AzzApp:
             plan,
             claude,
         ]:
-            module.register(self._app, engine)
+            module.register(self._app, self._backend)
         interactive.register(self._app, self._backend, notice=self._notice)
 
     @property

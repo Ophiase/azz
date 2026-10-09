@@ -14,6 +14,7 @@ def register(
     notice: str | None = None,
 ) -> None:
     def interactive() -> None:
+        """Browse and edit work items in the terminal UI. Ctrl+P for commands."""
         from azz.tui.app import AzzTUI
 
         tui = AzzTUI(backend)
@@ -21,5 +22,4 @@ def register(
             tui.sub_title = notice
         tui.run()
 
-    for name in ["interactive", "i"]:
-        app.command(name)(interactive)
+    app.command("interactive | i")(interactive)

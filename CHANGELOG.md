@@ -9,14 +9,14 @@
 - TUI local-edit mode: edit `.azz/tasks` instead of the remote
   (phase 6 of `docs/decisions/2026-07-31-plan-cache.md`)
 - an interactive panel to reconcile a divergent item
-- widen `register(app, engine: Engine)` to `WorkItemBackend` and drop the
-  `cast` in `app.py`
 
 ## v0.1
 
 - **v0.1.3**
   - `Ctrl+P` lists every key binding, including the twelve the footer hides
   - the README opens on interactive mode rather than the plan engine
+  - `azz --help` describes every command, and shows aliases as `list | l`
+    instead of an undocumented entry each
 
 - **v0.1.2**
   - plan engine — write work items as Markdown in `.azz/tasks`, review, then

@@ -7,13 +7,13 @@ from typing import Annotated
 import typer
 from rich import print
 
+from azz.backend import WorkItemBackend
 from azz.core.editor import edit_in_editor
-from azz.core.engine import Engine
 from azz.core.work_item import WorkItemState
 from azz.core.work_item.work_item_type import WorkItemType
 
 
-def register(app: typer.Typer, engine: Engine) -> None:
+def register(app: typer.Typer, engine: WorkItemBackend) -> None:
     def list_work_items(
         include_closed: bool = typer.Option(False, "--all", "-a"),
         show_others: bool = typer.Option(False, "--others", "-A"),
@@ -28,6 +28,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
         show_date: bool = typer.Option(False, "--date", "-d"),
         show_project: bool = typer.Option(False, "--show-project", "-p"),
     ) -> None:
+        """List your work items. Open ones by default."""
         states: frozenset[WorkItemState] | None = None
         if include_closed:
             states = frozenset({
@@ -66,6 +67,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
             print(task.render_list(show_date=show_date, show_project=show_project))
 
     def show_work_item(work_item_id: int) -> None:
+        """Show one work item in full, description included."""
         work_item = engine.get_workitem(work_item_id)
         print(work_item.render_details())
 
@@ -86,6 +88,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
             help="Read description from file (skips editor)"
         ),
     ) -> None:
+        """Create a work item and assign it to you."""
         if description_file:
             description = Path(description_file).read_text()
         elif editor:
@@ -118,6 +121,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
             help="Replace description from file (skips editor)"
         ),
     ) -> None:
+        """Edit a work item's title or description in $EDITOR."""
         if description_file:
             item = engine.get_workitem(work_item_id)
             updated = replace(item, description=Path(description_file).read_text())
@@ -128,6 +132,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
     def delete_work_item(
         work_item_ids: Annotated[list[int], typer.Argument()],
     ) -> None:
+        """Delete work items. Permanent."""
         for work_item_id in work_item_ids:
             engine.delete_workitem_helper(work_item_id)
 
@@ -135,14 +140,13 @@ def register(app: typer.Typer, engine: Engine) -> None:
         parent_id: int,
         children_ids: Annotated[list[int], typer.Argument()],
     ) -> None:
+        """Make work items children of a parent."""
         for child_id in children_ids:
             engine.link_parent(child_id, parent_id)
 
-    for name in ["list", "l"]:
-        app.command(name)(list_work_items)
+    app.command("list | l")(list_work_items)
     app.command("show")(show_work_item)
-    for name in ["create", "c"]:
-        app.command(name)(create_work_item)
+    app.command("create | c")(create_work_item)
     app.command("edit")(edit_work_item)
     app.command("delete")(delete_work_item)
     app.command("attach")(attach)

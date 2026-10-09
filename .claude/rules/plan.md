@@ -35,7 +35,7 @@ src/azz/plan/
   serializer.py   WorkItem → .md text
   writer.py       upserts single keys back into an existing .md
   slug.py         WorkItem → filename (human label, no machine meaning)
-  diff.py         (LocalItem[], Engine) → Changeset
+  diff.py         (LocalItem[], WorkItemBackend) → Changeset
   resolver.py     RemoteResolver — all tracked ids in one query
   batch_reader.py BatchWorkItemReader — the optional batching capability
   comparison.py   field-by-field diffing, HTML/Markdown normalization
@@ -69,11 +69,12 @@ checked at runtime, so a backend without the capability still works and just
 costs one call per id. Keep optional capabilities as separate
 `runtime_checkable` protocols rather than widening the main surface.
 
-`Engine` satisfies `WorkItemBackend` structurally, and so would a
-cache-backed source. New code that reads work items should depend on the
-protocol, not on `Engine` — that is what makes offline and demo modes
-possible without callers knowing the difference. Existing code still imports
-`Engine` directly; migrate opportunistically, not in bulk.
+`Engine` satisfies `WorkItemBackend` structurally, and so does `CacheBackend`.
+Nothing outside `src/azz/core/` annotates `Engine` any more: the CLI `register`
+functions, the TUI and the plan engine all take the protocol, which is what
+lets demo and offline modes run without a caller knowing the difference. Keep
+it that way — an `Engine` annotation anywhere else is a regression, and the
+`cast` it used to force in `app.py` is gone.
 
 ## The cache has two generations
 

@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 
-from azz.core.engine import Engine
+from azz.backend import WorkItemBackend
 from azz.core.work_item import WorkItem
 
 from .comparison import field_diffs
@@ -12,7 +12,7 @@ from .snapshots import Snapshots
 
 def compute_changeset(
     local_items: Sequence[LocalItem],
-    engine: Engine,
+    engine: WorkItemBackend,
     snapshots: Snapshots | None = None,
 ) -> Changeset:
     """

@@ -1,7 +1,7 @@
 from dataclasses import replace
 from logging import getLogger
 
-from azz.core.engine import Engine
+from azz.backend import WorkItemBackend
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItem
 from azz.core.work_item.work_item_type import WorkItemType
@@ -17,7 +17,9 @@ logger = getLogger(__name__)
 class Applier:
     """Pushes a single `Change` to the remote. Never rolls back."""
 
-    def __init__(self, engine: Engine, snapshots: Snapshots | None = None) -> None:
+    def __init__(
+        self, engine: WorkItemBackend, snapshots: Snapshots | None = None
+    ) -> None:
         self._engine = engine
         self._snapshots = snapshots
 
