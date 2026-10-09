@@ -5,6 +5,11 @@ from enum import StrEnum
 from typing import Any, Self
 
 from azz.core.work_item import WorkItem
+from azz.core.work_item.description_format import (
+    FORMATS_KEY,
+    DescriptionFormat,
+    body_field_of,
+)
 from azz.core.work_item.work_item import work_item_factory
 
 
@@ -15,6 +20,8 @@ class AzureField(StrEnum):
     STATE = "System.State"
     PROJECT = "System.TeamProject"
     DESCRIPTION = "System.Description"
+    REPRO_STEPS = "Microsoft.VSTS.TCM.ReproSteps"
+    PRIORITY = "Microsoft.VSTS.Common.Priority"
     ASSIGNED_TO = "System.AssignedTo"
     ITERATION_PATH = "System.IterationPath"
     PARENT = "System.Parent"
@@ -56,6 +63,13 @@ class ItemPayload:
                 fields[field.value] = value
         return type(self)({**self.data, "fields": fields})
 
+    def with_description_format(self, description_format: DescriptionFormat) -> Self:
+        formats = {
+            **(self.data.get(FORMATS_KEY) or {}),
+            body_field_of(self.data): description_format.value,
+        }
+        return type(self)({**self.data, FORMATS_KEY: formats})
+
     def with_change_stamp(self, moment: datetime) -> Self:
         return self.with_fields({AzureField.CHANGED_DATE: moment.isoformat()})
 
@@ -68,7 +82,8 @@ class ItemPayload:
             AzureField.PROJECT.value: work_item.project,
             AzureField.WORK_ITEM_TYPE.value: work_item.item_type.value,
         }
-        return cls({"id": work_item.id, "fields": required | _optional(work_item)})
+        payload = cls({"id": work_item.id, "fields": required | _optional(work_item)})
+        return payload.with_description_format(work_item.description_format)
 
 
 def _optional(work_item: WorkItem) -> dict[str, Any]:
@@ -89,5 +104,8 @@ def _optional(work_item: WorkItem) -> dict[str, Any]:
         AzureField.ITERATION_PATH.value: iteration_path,
         AzureField.PARENT.value: work_item.parent_id,
         AzureField.CHANGED_DATE.value: changed_date,
+        AzureField.PRIORITY.value: (
+            int(work_item.priority) if work_item.priority is not None else None
+        ),
     }
     return {key: value for key, value in candidates.items() if value is not None}

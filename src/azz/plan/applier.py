@@ -1,9 +1,10 @@
 from dataclasses import replace
 from logging import getLogger
 
-from azz.core.engine import Engine
+from azz.backend import WorkItemBackend
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItem
+from azz.core.work_item.description_format import DescriptionFormat
 from azz.core.work_item.work_item_type import WorkItemType
 
 from .comparison import UPDATABLE_FIELDS
@@ -17,7 +18,9 @@ logger = getLogger(__name__)
 class Applier:
     """Pushes a single `Change` to the remote. Never rolls back."""
 
-    def __init__(self, engine: Engine, snapshots: Snapshots | None = None) -> None:
+    def __init__(
+        self, engine: WorkItemBackend, snapshots: Snapshots | None = None
+    ) -> None:
         self._engine = engine
         self._snapshots = snapshots
 
@@ -83,7 +86,11 @@ class Applier:
         if "title" in changed and local_item.title:
             target = replace(target, name=local_item.title)
         if "description" in changed and local_item.description is not None:
-            target = replace(target, description=local_item.description)
+            target = replace(
+                target,
+                description=local_item.description,
+                description_format=DescriptionFormat.MARKDOWN,
+            )
         self._engine.update_workitem(target)
 
     def _push_optional_fields(
@@ -102,6 +109,8 @@ class Applier:
         if local_item.iteration is not None and wanted("iteration"):
             iteration = self._resolve_iteration(local_item.iteration)
             self._engine.set_timebox(work_item_id, iteration)
+        if local_item.priority is not None and wanted("priority"):
+            self._engine.update_work_item_priority(work_item_id, local_item.priority)
 
     def _resolve_iteration(self, name: str) -> Iteration:
         for timebox in self._engine.list_timeboxes():

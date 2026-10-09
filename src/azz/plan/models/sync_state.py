@@ -15,6 +15,7 @@ class SyncState(StrEnum):
     LOCAL_ONLY = "local_only"
     REMOTE_ONLY = "remote_only"
     CONFLICT = "conflict"
+    NO_BASE = "no_base"
     NEW = "new"
     UNKNOWN = "unknown"
 
@@ -36,6 +37,7 @@ SYNC_STATE_LABELS: Final = {
     SyncState.LOCAL_ONLY: "LOCAL",
     SyncState.REMOTE_ONLY: "REMOTE",
     SyncState.CONFLICT: "CONFLICT",
+    SyncState.NO_BASE: "NO BASE",
     SyncState.NEW: "NEW",
     SyncState.UNKNOWN: "UNKNOWN",
 }
@@ -45,6 +47,7 @@ SYNC_STATE_COLORS: Final = {
     SyncState.LOCAL_ONLY: "yellow",
     SyncState.REMOTE_ONLY: "cyan",
     SyncState.CONFLICT: "red",
+    SyncState.NO_BASE: "magenta",
     SyncState.NEW: "green",
     SyncState.UNKNOWN: "magenta",
 }
@@ -54,6 +57,9 @@ SYNC_STATE_DESCRIPTIONS: Final = {
     SyncState.LOCAL_ONLY: "→ local changes, safe to push",
     SyncState.REMOTE_ONLY: "→ remote moved, run azz plan pull",
     SyncState.CONFLICT: "→ both sides changed — resolve by hand",
+    SyncState.NO_BASE: (
+        "→ no base — remote differs, azz plan pull --force takes the remote"
+    ),
     SyncState.NEW: "→ will be created by azz plan push",
     SyncState.UNKNOWN: "→ not in the cache, run azz plan fetch",
 }

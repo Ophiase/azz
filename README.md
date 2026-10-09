@@ -63,7 +63,79 @@ azz --version
 In your project repository,
 configure a `.envrc` file like `.envrc.example`.
 
-### Plan engine
+### Interactive mode
+
+This is how you will actually use azz day to day. One command:
+
+```bash
+azz interactive     # or: azz i
+```
+
+The keys you need to start:
+
+| Key | |
+|---|---|
+| `j` / `k` | move down / up (arrows work too) |
+| `n` | new task — `N` for a child of the selected one |
+| `r` | rename · `e` edit the description · `s` change state |
+| `+` / `-` | move to the next / previous timebox |
+| `a` | show Closed · `A` other people's · `c` current timebox only |
+| `v` | visual mode, to act on several items at once |
+| `/` | fuzzy-search the rows on screen · `Enter` jumps to the item |
+| `b` | copy a git branch name for the selected item |
+| `q` | quit |
+
+**`Ctrl+P` opens the command palette**, which lists everything — including the
+keys not shown in the footer. Reach for it whenever you are not sure.
+
+Some commands live only there, with no key: *Raise priority* and *Lower
+priority* act on the selection or the cursor row, and *Show priority* hides
+everything less urgent than the level you pick. The `P` column shows the
+Azure DevOps priority, 1 being the most urgent.
+
+### Everyday commands
+
+For scripting, or when you want one thing without opening the TUI:
+
+```bash
+azz list                      # your open items (alias: azz l)
+azz list -a                   # include Closed
+azz list -c                   # current timebox only
+azz list -ds -l 20            # with dates, sorted by change, last 20
+azz show 7651                 # full details of one item
+
+azz create "Fix the login redirect"          # alias: azz c
+azz create "Add metrics" -t Bug -p 7412      # type, and a parent item
+azz state Active 7651         # or: azz close 7651 / azz resolve 7651
+azz attach 7412 7651 7695     # make items children of a parent
+azz set_timebox 7651          # move into the current sprint
+
+azz timebox                   # the current sprint
+azz branch 7651               # a git branch name, copied to the clipboard
+```
+
+Every command takes `--help`.
+
+### Pull requests
+
+Run from the branch, in any worktree. azz reads the repository from the
+branch's remote, links the work item its name carries, and makes you the
+reviewer. Running it again updates the open pull request.
+
+```bash
+azz pr create --dry-run       # show what would be opened
+azz pr create                 # push, then open (or update) the PR
+azz pr create --title "Fix the redirect" -f description.md -w 7652
+```
+
+Without `--title`, the title is the work item's and the description lists
+the commits. In Claude Code, `/azz pr` writes both from the diff.
+
+### Plan engine — planning a batch of work
+
+You do not need this to use azz. It exists for the case where you want to
+write out several work items, review them, and apply them in one go — on your
+own, or with an agent doing the writing.
 
 Declarative work item management: express the desired state in local files,
 diff it against Azure DevOps, apply it with confirmation.
@@ -90,6 +162,13 @@ iteration: Sprint 42
 The body of the file is the work item description.
 ```
 
+The body is stored on Azure DevOps as Markdown, not HTML: a pushed or
+edited body switches the field to Markdown, which Azure DevOps cannot turn
+back into HTML. For a Bug it goes to Repro Steps, the field its form shows.
+That write goes through `az rest`, so it needs `az login` rather than a PAT
+alone. A title may keep the `[project] -` prefix of a pulled file: it is
+never added twice.
+
 Omit `item_id` to mark the file as a new task — it is written back into the
 file once the item is created. Fields absent from the frontmatter are never
 compared and never written, so a file containing only `title` will only ever
@@ -105,6 +184,7 @@ want, delete the files you no longer need — a missing file never means
 azz plan status           # offline: .azz/tasks vs .azz/cache
 azz plan pull             # write the cache into .azz/tasks, fast-forward only
 azz plan push             # apply, confirming each change
+azz plan push a.md b.md   # apply only these files (status takes paths too)
 azz plan push --dry-run   # show what would be applied
 azz plan push --yes       # apply without per-change confirmation
 ```
@@ -115,6 +195,12 @@ writes that into `.azz/tasks/`, fast-forwarding only the files you have not
 edited and refusing the ones where both sides moved. That cached copy is the
 merge base, which is what lets `status` run fully offline and tell a remote
 edit apart from one of yours instead of guessing.
+
+`push` sends only the fields a file changed since it was pulled, so a field
+moved on the board — an iteration, a Closed state — is never reverted. A
+file with no merge base (from before the cache existed) is reported
+`NO BASE` and never pushed: `azz plan pull --force` takes the remote and
+records the base.
 
 Fetch options: `-l/--limit N` (default 20, `0` for no limit), `-a/--all` to
 include Closed items, `-c/--current-timebox`. `-a -l 0` pulls the same set as
@@ -127,11 +213,14 @@ Once the archive is on disk, prune it back to the work in flight:
 azz plan prune --dry-run   # list what would go
 azz plan prune             # delete, after one confirmation
 azz plan prune --yes       # delete without confirming
+azz plan prune -t -m       # also outside the current timebox / not mine
 ```
 
-`prune` removes a file only when the work item is Closed on the remote *and*
-the file is in sync with it. Local drift, files with no `item_id`, and files
-whose item is gone from the remote are always kept.
+`prune` removes a file only when the file is in sync with its work item and
+the item is no longer worked on: Closed, and with `-t/--outside-timebox` or
+`-m/--not-mine`, also outside the current timebox or assigned to someone
+else. Local drift, files with no `item_id`, and files whose item is gone
+from the remote are always kept.
 
 `.azz/` is gitignored by default. A missing file never means "delete" —
 `prune` only ever touches local files, and deletion on Azure DevOps stays
@@ -189,14 +278,13 @@ block: the skill replaces it, and is not loaded on every conversation.
 | Profile | Claude can | Claude cannot |
 |---|---|---|
 | `planning` | read the remote, author intent files in `.azz/tasks/` | change Azure DevOps at all — every write command is denied |
-| `standard` | the above, plus `create`, `state`, `close`, `attach`, `set_timebox` behind a prompt | `edit`, `delete`, `plan push` |
+| `standard` | the above, plus `create`, `state`, `close`, `attach`, `set_timebox` and `plan push` behind a prompt | `edit`, `delete` |
 
 `planning` is the default and is less restrictive than it sounds: Claude can
 plan a whole batch of work as Markdown, you review it like a git diff and
-apply it yourself. `azz plan push` is never allow-listed in either profile —
-it confirms each change on a TTY, so an agent cannot usefully run it, and the
-only way to change that would be `--yes`, which removes the review step the
-plan engine exists to provide.
+apply it yourself. `azz plan push` is never allow-listed in either profile.
+Under `standard` the agent pushes its own files by path, after showing the
+dry-run: your permission prompt on that exact command is the review.
 
 See [docs/claude.md](docs/claude.md) for details.
 

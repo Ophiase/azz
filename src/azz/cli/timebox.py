@@ -5,15 +5,17 @@ from typing import Annotated
 import typer
 from rich import print
 
-from azz.core.engine import Engine
+from azz.backend import WorkItemBackend
 
 
-def register(app: typer.Typer, engine: Engine) -> None:
+def register(app: typer.Typer, engine: WorkItemBackend) -> None:
     def show_timebox() -> None:
+        """Show the current timebox."""
         timebox = engine.get_current_timebox()
         print(timebox.render_all())
 
     def list_timeboxes() -> None:
+        """List every timebox, past and future."""
         for timebox in engine.list_timeboxes():
             print(timebox.render_all())
 
@@ -21,6 +23,7 @@ def register(app: typer.Typer, engine: Engine) -> None:
         work_item_ids: Annotated[list[int], typer.Argument()],
         timebox: int | None = typer.Option(None, "--timebox", "-t"),
     ) -> None:
+        """Move work items into the current timebox."""
         if timebox is not None:
             print("timebox parameter is currently ignored.")
         current_timebox = engine.get_current_timebox()

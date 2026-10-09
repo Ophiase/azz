@@ -34,6 +34,14 @@ class EngineConfig(BaseModel):
             ).lower() == "true",
         )
 
+    def project_title(self, name: str, project: ProjectName) -> str:
+        """`[project] - name` when titles carry their project, unless `name`
+        already starts with that marker — a title copied from a pulled file."""
+        marker = f"[{project}]"
+        if not self.prepend_project_name or name.startswith(marker):
+            return name
+        return f"{marker} - {name}"
+
     @property
     def projects(self) -> tuple[ProjectName, ...]:
         return (self.default_project, self.management_project)

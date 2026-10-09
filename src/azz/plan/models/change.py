@@ -14,8 +14,8 @@ class Change:
     field_diffs: tuple[FieldDiff, ...] = field(default=())
     remote_item: WorkItem | None = None
     remote_moved: bool = False
-    """The remote changed after the timestamp recorded locally — someone
-    else, or another tool, edited the item since the last fetch."""
+    """The remote moved past the merge base — someone else, or another tool,
+    edited the item since the file was last synced."""
 
     @property
     def changed_field_names(self) -> frozenset[str]:

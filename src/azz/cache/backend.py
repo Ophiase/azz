@@ -7,6 +7,8 @@ from azz.core.editor import edit_work_item_in_editor
 from azz.core.engine_config import EngineConfig
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItem, WorkItemFilter, WorkItemState
+from azz.core.work_item.description_format import DescriptionFormat
+from azz.core.work_item.priority import Priority
 from azz.core.work_item.work_item_filter import IterationPathFilter, StateFilter
 from azz.core.work_item.work_item_type import WorkItemType
 
@@ -100,18 +102,24 @@ class CacheBackend:
     # --- Mutations ---
 
     def update_workitem(self, work_item: WorkItem) -> None:
-        self._rewrite(
-            work_item.id,
-            {
-                AzureField.TITLE: work_item.name,
-                AzureField.DESCRIPTION: work_item.description or None,
-            },
+        payload = self._require_payload(work_item.id).with_fields({
+            AzureField.TITLE: work_item.name,
+            AzureField(work_item.item_type.body_field): work_item.description or None,
+        })
+        self._store.write_item(
+            payload.with_description_format(work_item.description_format)
+            .with_change_stamp(self._now())
         )
 
     def update_work_item_state(
         self, work_item_id: int, new_state: WorkItemState
     ) -> None:
         self._rewrite(work_item_id, {AzureField.STATE: new_state.value})
+
+    def update_work_item_priority(
+        self, work_item_id: int, priority: Priority
+    ) -> None:
+        self._rewrite(work_item_id, {AzureField.PRIORITY: int(priority)})
 
     def update_work_item_title(self, work_item_id: int, new_title: str) -> None:
         self._rewrite(work_item_id, {AzureField.TITLE: new_title})
@@ -135,7 +143,7 @@ class CacheBackend:
         payload = ItemPayload({
             "id": self._store.next_item_id(),
             "fields": self._new_item_fields(name, description, project, item_type),
-        })
+        }).with_description_format(DescriptionFormat.MARKDOWN)
         self._store.write_item(payload)
         return payload.to_work_item()
 

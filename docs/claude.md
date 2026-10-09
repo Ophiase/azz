@@ -86,7 +86,7 @@ the list of files it changed and the two commands to run:
 
 ```text
 Plan changed — 2 files in .azz/tasks:
-  ~ 7651-langfuse-trace.md     title, description
+  ~ 4103-buffer-late-events.md title, description
   + buffer-late-events.md      new task, will be created
 
 Review:  azz plan status
@@ -101,17 +101,18 @@ reaches Azure DevOps until you run `azz plan push`.
 | Profile | Claude can | Claude cannot |
 |---|---|---|
 | `planning` | read the remote, author intent files in `.azz/tasks/` | change Azure DevOps at all — every write command is denied |
-| `standard` | the above, plus `create`, `state`, `close`, `attach`, `set_timebox` behind a prompt | `edit`, `delete`, `plan push` |
+| `standard` | the above, plus `create`, `state`, `close`, `attach`, `set_timebox` and `plan push` behind a prompt | `edit`, `delete` |
 
 `planning` is the default, and it is not as restrictive as it sounds. Claude
 can plan a whole batch of work as local Markdown files; you review them like
 a git diff and apply them yourself with `azz plan push`. The agent gets full
 planning autonomy, and no path to your board.
 
-`plan push` is never allow-listed in either profile. It confirms each change
-on a TTY, so an agent cannot usefully run it anyway — and the only way to
-make it agent-runnable would be `--yes`, which removes exactly the review
-step the plan engine exists to provide.
+`plan push` is never allow-listed in either profile. `planning` denies it;
+under `standard` the agent pushes only the files it wrote, by path: it shows
+`azz plan push --dry-run <files>` first, then runs `--yes` on the same
+paths, and your permission prompt on that exact command is the approval. A
+stale file elsewhere in `.azz/tasks` cannot ride along.
 
 ## Re-running it
 

@@ -1,6 +1,6 @@
 ---
 name: azz
-description: Plan and manage Azure DevOps work items from this project. Use whenever the developer asks to plan a task, write or refine a task description, break work down into tasks, check what they are working on, or sync task files — and whenever you touch a .azz/tasks/*.md intent file.
+description: Plan and manage Azure DevOps work items from this project. Use whenever the developer asks to plan a task, write or refine a task description, break work down into tasks, check what they are working on, sync task files, or open a pull request — and whenever you touch a .azz/tasks/*.md intent file.
 ---
 
 # azz — plan work items
@@ -14,4 +14,15 @@ You may also run the imperative write commands (`azz create`, `azz state`,
 every time. Use them for a single small change the developer explicitly asks
 for. For anything with more than one item, plan it instead.
 
-`azz plan push` is never allow-listed. Only the developer runs it.
+## Pushing your own files
+
+`azz plan push` is never allow-listed: every run prompts the developer, and
+that prompt is their approval. Push only the files you edited, by path, so a
+stale file elsewhere in `.azz/tasks` cannot ride along:
+
+1. `azz plan push --dry-run <files>` — then summarise it: one brief bullet
+   per item and field changed.
+2. `azz plan push --yes <files>` — `--yes` skips the per-change TTY
+   confirmation you cannot answer; the permission prompt replaces it.
+
+Never push without paths, and never push a file you did not write.

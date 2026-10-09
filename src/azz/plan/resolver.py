@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from logging import getLogger
 
-from azz.core.engine import Engine
+from azz.backend import WorkItemBackend
 from azz.core.work_item import WorkItem
 
 from .batch_reader import BatchWorkItemReader
@@ -19,7 +19,7 @@ class RemoteResolver:
     id is only reported missing after both attempts fail.
     """
 
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: WorkItemBackend) -> None:
         self._engine = engine
 
     def resolve(self, work_item_ids: Sequence[int]) -> Mapping[int, WorkItem]:

@@ -1,6 +1,15 @@
 import re
+from typing import Final
 
 from azz.core.work_item.work_item import WorkItem
+
+WORK_ITEM_ID_IN_BRANCH: Final = re.compile(r"^(?:[^/]+/)?(?:tb-\d+-)?(\d+)(?:-|$)")
+
+
+def work_item_id_from_branch(name: str) -> int | None:
+    """The id `branch_name` put in a branch: `dev/tb-46-8049-fix-x` -> 8049."""
+    match = WORK_ITEM_ID_IN_BRANCH.match(name)
+    return int(match.group(1)) if match else None
 
 
 def branch_name(work_item: WorkItem, count: int = 5) -> str:

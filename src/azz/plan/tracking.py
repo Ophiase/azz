@@ -23,6 +23,7 @@ class TrackingStatus(StrEnum):
     LOCAL_AHEAD = "local_ahead"
     REMOTE_AHEAD = "remote_ahead"
     CONFLICT = "conflict"
+    NO_BASE = "no_base"
 
     @property
     def glyph(self) -> str:
@@ -43,6 +44,7 @@ TRACKING_GLYPHS: Final = {
     TrackingStatus.LOCAL_AHEAD: "◆",
     TrackingStatus.REMOTE_AHEAD: "▼",
     TrackingStatus.CONFLICT: "✗",
+    TrackingStatus.NO_BASE: "?",
 }
 
 TRACKING_COLORS: Final = {
@@ -51,6 +53,7 @@ TRACKING_COLORS: Final = {
     TrackingStatus.LOCAL_AHEAD: "yellow",
     TrackingStatus.REMOTE_AHEAD: "cyan",
     TrackingStatus.CONFLICT: "red",
+    TrackingStatus.NO_BASE: "magenta",
 }
 
 TRACKING_DESCRIPTIONS: Final = {
@@ -59,6 +62,7 @@ TRACKING_DESCRIPTIONS: Final = {
     TrackingStatus.LOCAL_AHEAD: "local changes not pushed",
     TrackingStatus.REMOTE_AHEAD: "remote moved since the last fetch",
     TrackingStatus.CONFLICT: "local and remote both changed",
+    TrackingStatus.NO_BASE: "no base — remote differs, side unknown",
 }
 
 
@@ -102,8 +106,8 @@ def _classify(
 ) -> TrackingStatus:
     cached = base.read_item(remote_item.id)
     if cached is None:
-        local_moved = bool(field_diffs(local_item, remote_item))
-        return TrackingStatus.LOCAL_AHEAD if local_moved else TrackingStatus.IN_SYNC
+        differs = bool(field_diffs(local_item, remote_item))
+        return TrackingStatus.NO_BASE if differs else TrackingStatus.IN_SYNC
 
     local_moved = bool(field_diffs(local_item, cached))
     remote_moved = remote_advanced(cached, remote_item)

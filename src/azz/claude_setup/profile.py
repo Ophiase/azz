@@ -35,11 +35,13 @@ class Profile(StrEnum):
 PROFILE_SUMMARIES: Final = {
     Profile.PLANNING: (
         "Read the remote and author intent files. Every command that writes "
-        "to Azure DevOps is denied — you run 'azz plan push' yourself."
+        "to Azure DevOps is denied — you run 'azz plan push' yourself — "
+        "except 'azz pr create', which asks every time."
     ),
     Profile.STANDARD: (
         "Everything in planning, plus the imperative write commands "
-        "(create, state, close, attach, set_timebox), each behind a prompt."
+        "(create, state, close, attach, set_timebox) and 'azz plan push' "
+        "on named files, each behind a prompt."
     ),
 }
 

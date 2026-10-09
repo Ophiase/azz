@@ -33,11 +33,8 @@ Match the existing history — it is informative, not terse.
 - Body: explain **why**, and what was rejected. Reference decision records by
   date when relevant. Wrap at 72 columns.
 - English only.
-- End with:
-
-  ```text
-  Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
-  ```
+- **No `Co-Authored-By` trailer, and no other attribution to the agent.**
+  The developer is the author of every commit.
 
 ## Never
 

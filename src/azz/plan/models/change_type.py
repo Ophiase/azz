@@ -7,6 +7,8 @@ class ChangeType(StrEnum):
     UPDATE = "update"
     NOOP = "noop"
     GONE = "gone"
+    BEHIND = "behind"
+    NO_BASE = "no_base"
 
     @property
     def is_applicable(self) -> bool:
@@ -26,6 +28,8 @@ CHANGE_TYPE_LABELS: Final = {
     ChangeType.UPDATE: "DRIFT",
     ChangeType.NOOP: "NOOP",
     ChangeType.GONE: "GONE",
+    ChangeType.BEHIND: "BEHIND",
+    ChangeType.NO_BASE: "NO BASE",
 }
 
 CHANGE_TYPE_COLORS: Final = {
@@ -33,4 +37,6 @@ CHANGE_TYPE_COLORS: Final = {
     ChangeType.UPDATE: "yellow",
     ChangeType.NOOP: "grey50",
     ChangeType.GONE: "red",
+    ChangeType.BEHIND: "cyan",
+    ChangeType.NO_BASE: "magenta",
 }

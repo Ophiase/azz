@@ -6,16 +6,16 @@ from typing import Annotated, Final
 import typer
 from rich import print
 
+from azz.backend import WorkItemBackend
 from azz.claude_setup import InstallReport, InstallScope, Profile, install
 from azz.claude_setup.git_ignore import is_ignored
-from azz.core.engine import Engine
 
 DEFAULT_PROFILE: Final = Profile.PLANNING
 DEFAULT_SCOPE: Final = InstallScope.USER
 DEFAULT_TARGET: Final = Path()
 
 
-def register(app: typer.Typer, _engine: Engine) -> None:
+def register(app: typer.Typer, _engine: WorkItemBackend) -> None:
     claude_app = typer.Typer(help="Set up the Claude Code integration for azz.")
 
     def install_profile(

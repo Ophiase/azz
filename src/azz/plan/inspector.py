@@ -71,10 +71,14 @@ def _three_way(
 
 
 def _two_way(local_item: LocalItem, known: WorkItem, is_base: bool) -> SyncEntry:
-    """One snapshot only: we can see that the file differs, not which side
-    moved — exactly what `status` reported before the cache existed."""
+    """
+    One snapshot only. Against a base, a difference is the file's own edit.
+    Against the fetched state alone it could be either side's, so it is never
+    called local: pushing a remote-only change back would revert it.
+    """
     diffs = field_diffs(local_item, known)
-    state = SyncState.LOCAL_ONLY if diffs else SyncState.IN_SYNC
+    differs = SyncState.LOCAL_ONLY if is_base else SyncState.NO_BASE
+    state = differs if diffs else SyncState.IN_SYNC
     return SyncEntry(
         local_item,
         state,

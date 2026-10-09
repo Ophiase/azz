@@ -28,14 +28,15 @@ design change, not before a small fix:
 
 ```text
 src/azz/plan/
-  discovery.py    find_plan_root (walks up like git), tasks/cache paths
+  discovery.py    find_plan_root (walks up like git), tasks/cache paths,
+                  the files a command was given
   initializer.py  creates .azz/ + .azz/.gitignore containing `*`
   frontmatter.py  text → (metadata, body)
   parser.py       .md → LocalItem, rejects unknown keys
   serializer.py   WorkItem → .md text
   writer.py       upserts single keys back into an existing .md
   slug.py         WorkItem → filename (human label, no machine meaning)
-  diff.py         (LocalItem[], Engine) → Changeset
+  diff.py         (LocalItem[], WorkItemBackend) → Changeset
   resolver.py     RemoteResolver — all tracked ids in one query
   batch_reader.py BatchWorkItemReader — the optional batching capability
   comparison.py   field-by-field diffing, HTML/Markdown normalization
@@ -46,7 +47,7 @@ src/azz/plan/
   fetcher.py      records one remote item in .azz/cache (never .azz/tasks)
   puller.py       fast-forwards .azz/cache into .azz/tasks
   inspector.py    the offline three-way comparison behind `status`
-  pruner.py       deletes local files of Closed, in-sync items
+  pruner.py       deletes local files of in-sync items PrunePolicy calls inactive
   renderer.py     all terminal output
   sync_renderer.py output for status and pull
   tracking.py     TrackingStatus glyphs, consumed by the TUI
@@ -57,7 +58,7 @@ src/azz/cache/
   backend.py      CacheBackend — WorkItemBackend over a CacheStore
   assignee_filter.py  AssigneeFilter — no assignee means the owner's
 src/azz/backend/
-  protocol.py     WorkItemBackend — the 12-method surface every caller uses
+  protocol.py     WorkItemBackend — the 13-method surface every caller uses
 src/azz/demo/     the fictional board; a CacheBackend over a fixture
 src/azz/tui/
   plan_state.py   PlanState — the plan's view of the on-screen items
@@ -69,11 +70,12 @@ checked at runtime, so a backend without the capability still works and just
 costs one call per id. Keep optional capabilities as separate
 `runtime_checkable` protocols rather than widening the main surface.
 
-`Engine` satisfies `WorkItemBackend` structurally, and so would a
-cache-backed source. New code that reads work items should depend on the
-protocol, not on `Engine` — that is what makes offline and demo modes
-possible without callers knowing the difference. Existing code still imports
-`Engine` directly; migrate opportunistically, not in bulk.
+`Engine` satisfies `WorkItemBackend` structurally, and so does `CacheBackend`.
+Nothing outside `src/azz/core/` annotates `Engine` any more: the CLI `register`
+functions, the TUI and the plan engine all take the protocol, which is what
+lets demo and offline modes run without a caller knowing the difference. Keep
+it that way — an `Engine` annotation anywhere else is a regression, and the
+`cast` it used to force in `app.py` is gone.
 
 ## The cache has two generations
 
@@ -101,8 +103,16 @@ stale the cache is.
   change the title. Do not introduce defaults that break this.
 - **A missing file never means delete.** Deletion is explicit
   (`azz delete`, or `azz plan prune` for local files only).
-- **`prune` never touches the remote.** Local files only, and only Closed
-  items that are in sync.
+- **`prune` never touches the remote.** Local files only, and only `NOOP`
+  (in sync) items `PrunePolicy` calls inactive: Closed always, and outside
+  the current timebox or not mine only when asked. `--not-mine` refuses to
+  run when it cannot tell who "me" is — an empty answer would make every
+  file somebody else's.
+- **`push` sends only the file's own edits.** `compute_changeset` keeps
+  the fields that differ from the merge base; a field that moved on the
+  remote alone is `BEHIND`, never pushed. Without a base nothing is pushed
+  (`NO_BASE`) and nothing calls the file "local" — `status`, the TUI and
+  `push` all say so. Only `pull --force` resolves it.
 - **`push` has no rollback.** Errors are reported per change and the loop
   continues — a partial apply must stay visible and recoverable.
 - **`item_id` matches files to remote items, not the filename.** A file keeps
@@ -110,6 +120,13 @@ stale the cache is.
 - **Write-back includes the title**, because
   `create_work_item_helper` may prepend a `[project]` marker. Without it
   every freshly created item reports `DRIFT` on the next `status`.
+- **`push` and `status` take paths.** Given files, only those are read;
+  a path outside `.azz/tasks` is an error, never skipped, and `status`
+  drops the never-pulled list, which a subset would fill with every other
+  item.
+- **`priority` syncs like `state`**, except a merge base cached before
+  priorities were fetched holds none: that is not a remote move
+  (`snapshot_diff._priority_moved`), or every edited file would conflict.
 - **`type` is compared but never pushed** on an existing item. Azure DevOps
   treats it as a different operation and `Engine` does not expose it.
 - **`remote_changed_date` is retired.** The merge base replaced it. The
@@ -117,9 +134,24 @@ stale the cache is.
   reintroduce a tool-managed timestamp in a human-readable file.
 - **`fetch` never writes `.azz/tasks/`.** It records the remote in the cache;
   `pull` writes the working tree. Collapsing them removes the merge base.
-- **Descriptions are lossy.** Remote is HTML, local is Markdown. Comparison
-  normalizes both (`normalize_markdown`) to survive the round-trip. Any
-  change here risks either phantom drift or silently unpushed edits.
+- **Descriptions carry a format.** `WorkItem.description_format` is read
+  from `multilineFieldsFormat`, which `az boards query` leaves empty, so it
+  falls back to "no HTML tag means Markdown". Text without a tag reads
+  verbatim whatever the declared format, so `show` and `query` agree on it;
+  always read `markdown_description`, since the HTML converter escapes
+  Markdown. `remote_advanced` compares the stored text, never a reading.
+  Comparison also accepts the escaped reading, so older pulls stay in sync.
+- **The body lives in the field the form shows.** `WorkItemType.body_field`:
+  Repro Steps for a Bug, the Description otherwise. A Bug with empty Repro
+  Steps still reads its Description, which is where older Bugs were written.
+- **A Markdown body is written through `az rest`** (`core/work_item_patch.py`)
+  with a `/multilineFieldsFormat` operation, and `Engine` raises when the
+  answer is not Markdown. Azure DevOps ignores that operation when the value
+  equals the stored one, so a Markdown value always ends with one newline.
+  A create sends no body to `az boards`, then patches it; a title-only update
+  keeps the item's format, because Markdown cannot be turned back into HTML.
+- **The `[project] -` prefix is added once.** `EngineConfig.project_title`
+  leaves a title that already starts with it alone: pulled files carry it.
 
 ## Current state of the cache migration
 

@@ -9,6 +9,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Input, Label, Select
+from textual.widgets.select import NoSelection
 
 from azz.core.timebox import Iteration
 from azz.core.work_item import WorkItemState
@@ -78,6 +79,15 @@ class CreateScreen(ModalScreen[NewTaskData | None]):
             for tb in self._timeboxes
         )
 
+    def _tb_initial_value(self) -> Iteration | NoSelection:
+        """The timebox to preselect, or `Select.NULL` when there is none."""
+        if self._current_timebox is None:
+            return Select.NULL
+        return next(
+            (tb for tb in self._timeboxes if tb == self._current_timebox),
+            Select.NULL,
+        )
+
     def compose(self) -> ComposeResult:
         with Vertical(id="dialog"):
             yield Label("[bold]New Task[/bold]")
@@ -103,7 +113,7 @@ class CreateScreen(ModalScreen[NewTaskData | None]):
                     yield Label("Timebox")
                     yield Select(
                         self._tb_options(),
-                        value=self._current_timebox,
+                        value=self._tb_initial_value(),
                         allow_blank=True,
                         id="tb-select",
                     )

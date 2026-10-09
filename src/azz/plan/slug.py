@@ -7,7 +7,7 @@ MAX_SLUG_WORDS: Final = 6
 
 
 def intent_file_name(work_item: WorkItem, max_words: int = MAX_SLUG_WORDS) -> str:
-    """`7651-langfuse-trace-expected-output.md` — the id keeps it unique,
+    """`4103-buffer-late-events-in-the.md` — the id keeps it unique,
     the slug keeps it readable."""
     return f"{work_item.id}-{_slug(work_item.stripped_name, max_words)}.md"
 

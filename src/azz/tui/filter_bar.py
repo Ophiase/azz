@@ -13,6 +13,7 @@ class FilterBar(Label):
         show_others: bool,
         current_timebox_only: bool,
         show_project: bool,
+        priority: str,
         item_count: int,
         visual_mode: bool = False,
         selection_count: int = 0,
@@ -30,5 +31,6 @@ class FilterBar(Label):
         self.update(
             f"[a] closed: {closed}  ·  [A] others: {others}"
             f"  ·  [c] current: {current}  ·  [p] project: {project}"
+            f"  ·  priority: {priority}"
             f"  ·  {item_count} items{mode}"
         )

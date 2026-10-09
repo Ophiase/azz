@@ -7,8 +7,9 @@ from typing import Annotated
 import typer
 from rich import print
 
-from azz.core.engine import Engine
+from azz.backend import WorkItemBackend
 from azz.core.work_item import WorkItem, WorkItemState
+from azz.core.work_item.work_item import Username
 from azz.plan import (
     Applier,
     Change,
@@ -17,6 +18,7 @@ from azz.plan import (
     Fetcher,
     IntentFileError,
     LocalItem,
+    PrunePolicy,
     Puller,
     PullOutcome,
     Snapshots,
@@ -26,13 +28,14 @@ from azz.plan import (
     compute_changeset,
     find_plan_root,
     initialize_plan_directory,
-    intent_file_paths,
     parse_intent_files,
     prunable_changes,
     prune_intent_file,
+    selected_intent_file_paths,
     tasks_directory,
 )
 from azz.plan.renderer import (
+    render_change,
     render_changeset,
     render_fetch_outcome,
     render_fetch_summary,
@@ -62,9 +65,14 @@ ALL_STATES = frozenset({
 DEFAULT_FETCH_LIMIT = 20
 UNLIMITED = 0
 LIMIT_HELP = "How many of the most recently changed items to fetch (0 = all)."
+PATHS_HELP = "Intent files to act on; every file in .azz/tasks when omitted."
+
+IntentPaths = Annotated[
+    list[Path] | None, typer.Argument(help=PATHS_HELP, show_default=False)
+]
 
 
-def register(app: typer.Typer, engine: Engine) -> None:
+def register(app: typer.Typer, engine: WorkItemBackend) -> None:
     plan_app = typer.Typer(
         help="Manage local task intents in .azz/tasks and sync them to the remote."
     )
@@ -111,13 +119,13 @@ def register(app: typer.Typer, engine: Engine) -> None:
         print(render_fetch_summary(outcomes))
         print("Write the files with [bold]azz plan pull[/bold]")
 
-    def status() -> None:
+    def status(paths: IntentPaths = None) -> None:
         """Compare .azz/tasks with .azz/cache. Offline: never calls the remote.
 
         Three-way, so local edits, remote edits and genuine conflicts are told
         apart. Run `azz plan fetch` to refresh what it compares against.
         """
-        _report_sync(_load_sync_report())
+        _report_sync(_load_sync_report(paths or ()))
 
     def pull(
         force: bool = typer.Option(
@@ -139,16 +147,18 @@ def register(app: typer.Typer, engine: Engine) -> None:
         _pull(Puller(plan_root).pull(report, force=force))
 
     def push(
+        paths: IntentPaths = None,
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
         dry_run: bool = typer.Option(False, "--dry-run"),
     ) -> None:
         """Apply local intents to the remote, confirming each change.
 
-        Every applied change advances the merge base, so `azz plan status`
-        reports the file as in sync afterwards without another fetch.
+        Given paths, only those files are pushed, so a stale file elsewhere in
+        .azz/tasks cannot ride along. Every applied change advances the merge
+        base, so `azz plan status` reports the file as in sync afterwards.
         """
         plan_root = _require_plan_root()
-        changeset = _load_changeset(engine)
+        changeset = _load_changeset(engine, paths or ())
         if dry_run:
             _report(changeset)
             return
@@ -157,14 +167,25 @@ def register(app: typer.Typer, engine: Engine) -> None:
     def prune(
         assume_yes: bool = typer.Option(False, "--yes", "-y"),
         dry_run: bool = typer.Option(False, "--dry-run"),
+        outside_timebox: bool = typer.Option(
+            False, "--outside-timebox", "-t",
+            help="Also prune items that are not in the current timebox.",
+        ),
+        not_mine: bool = typer.Option(
+            False, "--not-mine", "-m",
+            help="Also prune items that are not assigned to me.",
+        ),
     ) -> None:
-        """Delete the local files of Closed items that are in sync.
+        """Delete the local files of in-sync items no longer being worked on.
 
-        Local only: the Azure DevOps work items are never touched. Files with
-        drift, files without an item_id, and files whose item is gone from the
-        remote are always kept.
+        Closed items always qualify; `--outside-timebox` and `--not-mine` widen
+        that, so .azz/tasks holds only the current work. Local only: the Azure
+        DevOps work items are never touched. Files with drift, files without
+        an item_id, and files whose item is gone from the remote are kept.
         """
-        _prune(prunable_changes(_load_changeset(engine)), assume_yes, dry_run)
+        policy = _prune_policy(engine, outside_timebox, not_mine)
+        candidates = prunable_changes(_load_changeset(engine), policy)
+        _prune(candidates, assume_yes, dry_run)
 
     plan_app.command("init")(init)
     plan_app.command("fetch")(fetch)
@@ -183,15 +204,17 @@ def _require_plan_root() -> Path:
     return plan_root
 
 
-def _load_local_items(plan_root: Path) -> tuple[LocalItem, ...]:
+def _load_local_items(
+    plan_root: Path, requested: Sequence[Path] = ()
+) -> tuple[LocalItem, ...]:
     try:
-        return parse_intent_files(intent_file_paths(plan_root))
+        return parse_intent_files(selected_intent_file_paths(plan_root, requested))
     except IntentFileError as error:
         print(f"[red]{error}[/red]")
         raise typer.Exit(code=1) from error
 
 
-def _cache_timeboxes(fetcher: Fetcher, engine: Engine) -> None:
+def _cache_timeboxes(fetcher: Fetcher, engine: WorkItemBackend) -> None:
     """Best effort — a plan fetch is about work items, not iterations."""
     try:
         fetcher.record_timeboxes(engine.list_timeboxes())
@@ -199,8 +222,36 @@ def _cache_timeboxes(fetcher: Fetcher, engine: Engine) -> None:
         print(f"[yellow]Could not cache the timebox list: {error}[/yellow]")
 
 
+def _prune_policy(
+    engine: WorkItemBackend, outside_timebox: bool, not_mine: bool
+) -> PrunePolicy:
+    try:
+        return PrunePolicy(
+            current_timebox=(
+                engine.get_current_timebox().path if outside_timebox else None
+            ),
+            owner=_my_display_name(engine) if not_mine else None,
+        )
+    except RuntimeError as error:
+        print(f"[red]{error}[/red]")
+        raise typer.Exit(code=1) from error
+
+
+def _my_display_name(engine: WorkItemBackend) -> Username:
+    """Read off my own items. With none to read it from, every file would look
+    like somebody else's, so that is an error rather than an empty answer."""
+    mine = engine.list_work_items(states=ALL_STATES, project_filter=False)
+    names = {item.assigned_to for item in mine if item.assigned_to}
+    if len(names) != 1:
+        raise RuntimeError(
+            "Cannot tell who 'me' is from the items assigned to you — "
+            "refusing to prune by assignee"
+        )
+    return names.pop()
+
+
 def _select_remote_items(
-    engine: Engine,
+    engine: WorkItemBackend,
     work_item_ids: Sequence[int] | None,
     limit: int,
     include_closed: bool,
@@ -244,10 +295,14 @@ def _pull(outcomes: Sequence[PullOutcome]) -> None:
     print(render_pull_summary(outcomes))
 
 
-def _load_sync_report() -> SyncReport:
+def _load_sync_report(requested: Sequence[Path] = ()) -> SyncReport:
+    """Without `requested`, also the cached items no file holds yet; with it,
+    only those files, since every other item would look never pulled."""
     plan_root = _require_plan_root()
-    local_items = _load_local_items(plan_root)
+    local_items = _load_local_items(plan_root, requested)
     report = SyncInspector(plan_root).inspect(local_items)
+    if requested:
+        report = SyncReport(report.entries)
     if not local_items and not report.incoming:
         print(f"[yellow]No intent files in {tasks_directory(plan_root)}[/yellow]")
         print("Record the remote with [bold]azz plan fetch[/bold]")
@@ -257,24 +312,26 @@ def _load_sync_report() -> SyncReport:
     return report
 
 
-def _load_changeset(engine: Engine) -> Changeset:
+def _load_changeset(
+    engine: WorkItemBackend, requested: Sequence[Path] = ()
+) -> Changeset:
     plan_root = _require_plan_root()
-    paths = intent_file_paths(plan_root)
-    if not paths:
+    local_items = _load_local_items(plan_root, requested)
+    if not local_items:
         print(f"[yellow]No intent files in {tasks_directory(plan_root)}[/yellow]")
         print("Record the remote with [bold]azz plan fetch[/bold]")
         raise typer.Exit()
-    return compute_changeset(
-        _load_local_items(plan_root), engine, Snapshots.for_plan(plan_root)
-    )
+    return compute_changeset(local_items, engine, Snapshots.for_plan(plan_root))
 
 
 def _apply(
     changeset: Changeset,
-    engine: Engine,
+    engine: WorkItemBackend,
     snapshots: Snapshots,
     assume_yes: bool,
 ) -> None:
+    for change in changeset.refused:
+        print(render_change(change))
     applicable = changeset.applicable
     if not applicable:
         print("[green]Nothing to resolve[/green]")

@@ -9,10 +9,27 @@
 - TUI local-edit mode: edit `.azz/tasks` instead of the remote
   (phase 6 of `docs/decisions/2026-07-31-plan-cache.md`)
 - an interactive panel to reconcile a divergent item
-- widen `register(app, engine: Engine)` to `WorkItemBackend` and drop the
-  `cast` in `app.py`
+- descriptions are Markdown on our side: `create -f`, `edit` (and the editor)
+  send the text raw into `System.Description`, an HTML field, so ADO shows one
+  unformatted block unless we write HTML by hand; convert on write (or set the
+  field's Markdown format) and keep `show` rendering it back
+- `list` prints the new item's type as `Default` right after `create`, while
+  `show` says `Task`
 
 ## v0.1
+
+- **v0.1.3**
+  - `Ctrl+P` lists every key binding, including the twelve the footer hides
+  - the README opens on interactive mode rather than the plan engine
+  - `azz --help` describes every command, and shows aliases as `list | l`
+    instead of an undocumented entry each
+  - interactive: a `P` priority column, and palette commands to raise,
+    lower and filter by priority
+  - interactive: `/` searches only the rows on screen
+  - interactive: critical rows tinted red, rows below High faded
+  - `azz plan push|status <file>...` act on the named files only
+  - `priority: 1..4` in intent files, compared, pulled and pushed
+  - `standard` profile: the agent may push its own files, behind a prompt
 
 - **v0.1.2**
   - plan engine — write work items as Markdown in `.azz/tasks`, review, then
