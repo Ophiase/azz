@@ -4,6 +4,13 @@
 azz plan status     # what is tracked locally, and what diverges
 ```
 
+If azz fails with `Environment variable cannot be empty`, its settings
+(`AZURE_DEVOPS_ORG`, `AZURE_DEVOPS_PROJECT`, `AZURE_DEVOPS_MANAGEMENT_PROJECT`,
+`AZURE_DEVOPS_REPO`) most likely live in a direnv `.envrc` at the project root,
+which a non-interactive agent shell does not load. Run every command through
+it from that root — `direnv exec . azz plan status` — and never copy the
+values into another file or ask the developer to change their shell setup.
+
 If it says there is no `.azz` directory, ask the developer to run
 `azz plan init`. To bring in work items that already exist on the board:
 

@@ -9,6 +9,12 @@
 - TUI local-edit mode: edit `.azz/tasks` instead of the remote
   (phase 6 of `docs/decisions/2026-07-31-plan-cache.md`)
 - an interactive panel to reconcile a divergent item
+- descriptions are Markdown on our side: `create -f`, `edit` (and the editor)
+  send the text raw into `System.Description`, an HTML field, so ADO shows one
+  unformatted block unless we write HTML by hand; convert on write (or set the
+  field's Markdown format) and keep `show` rendering it back
+- `list` prints the new item's type as `Default` right after `create`, while
+  `show` says `Task`
 
 ## v0.1
 
